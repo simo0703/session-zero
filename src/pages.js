@@ -434,12 +434,14 @@ function markupPagina() {
       <textarea class=\"gm-textarea\" id=\"scene-input\" placeholder=\"Scrivi qui il testo della scena…\"></textarea>\
       <button class=\"btn-primary\" id=\"apri-scena-btn\">Apri scena</button>\
     </div>\
+\
+    <div class=\"panel\" id=\"proposte-azione-panel\" style=\"display:none; border: 1px solid var(--ember); background: rgba(180,72,58,0.1);\">\
+      <p class=\"panel-title\" style=\"color:var(--ember);\">Azioni proposte dai giocatori</p>\
+      <div id=\"dichiarazioni-lista\"></div>\
+    </div>\
+\
     <div class=\"panel\" id=\"richiedi-tiro-panel\" style=\"display:none;\">\
       <p class=\"panel-title\">Richiedi un tiro</p>\
-      <div id=\"dichiarazioni-elenco\" style=\"display:none; margin-bottom:14px;\">\
-        <p style=\"font-size:12px;color:var(--mist);margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;\">Approcci dichiarati</p>\
-        <div id=\"dichiarazioni-lista\"></div>\
-      </div>\
       <div class=\"roll-request-row\">\
         <div class=\"field-inline\">\
           <label>Giocatore</label>\
@@ -533,11 +535,11 @@ function markupPagina() {
       <button class=\"btn-primary\" id=\"misura-tira-btn\">Tira i dadi</button>\
     </div>\
     <div class=\"panel\" id=\"approccio-panel\" style=\"display:none;\">\
-      <p class=\"panel-title\">Il tuo approccio</p>\
-      <p class=\"roll-status\">Descrivi come affronti l'ostacolo prima che il narratore chieda il tiro.</p>\
-      <textarea class=\"gm-textarea\" id=\"approccio-input\" placeholder=\"Es. Scendo lungo la corda nuova, di giorno, senza fretta…\" style=\"min-height:60px;\"></textarea>\
-      <button class=\"btn-primary\" id=\"dichiara-approccio-btn\">Dichiara approccio</button>\
-      <p class=\"roll-status\" id=\"approccio-conferma\" style=\"display:none;margin-top:8px;\">Approccio dichiarato.</p>\
+      <p class=\"panel-title\">Proponi un'azione</p>\
+      <p class=\"roll-status\">Scrivi cosa vuoi tentare — il narratore la vedrà e deciderà se e come richiedere un tiro.</p>\
+      <textarea class=\"gm-textarea\" id=\"approccio-input\" placeholder=\"Es. Provo a scalare la parete usando la corda nuova…\" style=\"min-height:60px;\"></textarea>\
+      <button class=\"btn-primary\" id=\"dichiara-approccio-btn\">Proponi azione</button>\
+      <p class=\"roll-status\" id=\"approccio-conferma\" style=\"display:none;margin-top:8px;\">Azione proposta. Il narratore la vedrà.</p>\
     </div>\
     <div class=\"panel\" id=\"tiro-panel\" style=\"display:none;\">\
       <p class=\"panel-title\">Tiro richiesto</p>\
@@ -1117,7 +1119,7 @@ function scriptPagina() {
       });\
       if (selezionePrecedente) select.value = selezionePrecedente;\
 \
-      var dichiarazioniWrap = document.getElementById('dichiarazioni-elenco');\
+      var dichiarazioniWrap = document.getElementById('proposte-azione-panel');\
       var dichiarazioniLista = document.getElementById('dichiarazioni-lista');\
       var dichiarazioni = stato.scenaCorrente.dichiarazioni || {};\
       var idDichiaranti = Object.keys(dichiarazioni);\
@@ -1128,8 +1130,15 @@ function scriptPagina() {
           var voce = dichiarazioni[id];\
           var riga = document.createElement('div');\
           riga.className = 'dichiarazione-riga';\
-          riga.innerHTML = '<strong>' + voce.nickname + '</strong>: ' + voce.testo;\
+          riga.innerHTML = '<strong>' + voce.nickname + '</strong>: ' + voce.testo +\
+            ' <button type=\"button\" class=\"copy-btn\" style=\"margin-left:8px;\" data-giocatore=\"' + id + '\">Prepara tiro</button>';\
           dichiarazioniLista.appendChild(riga);\
+        });\
+        dichiarazioniLista.querySelectorAll('button[data-giocatore]').forEach(function (btn) {\
+          btn.addEventListener('click', function () {\
+            document.getElementById('tiro-giocatore').value = btn.getAttribute('data-giocatore');\
+            document.getElementById('tiro-numdadi').focus();\
+          });\
         });\
       } else {\
         dichiarazioniWrap.style.display = 'none';\
