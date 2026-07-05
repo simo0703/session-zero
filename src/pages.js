@@ -118,6 +118,10 @@ function markupPagina() {
       </div>\
       <p class=\"table-caption\" id=\"table-caption\">In attesa che il tavolo si riempia.</p>\
     </div>\
+    <p class=\"footer-note\" id=\"footer-note\">La partita inizia quando il Censore decide di aprire la prima scena.</p>\
+  </div>\
+\
+  <div class=\"stage\" id=\"join-panel-wrap\">\
     <div class=\"join-panel\" id=\"join-panel\">\
       <p class=\"join-title\">Siediti al tavolo</p>\
       <div class=\"field\">\
@@ -133,7 +137,7 @@ function markupPagina() {
           <option value=\"Dissimulazione\">Dissimulazione</option>\
         </select>\
       </div>\
-      <div class=\"gm-toggle\">\
+      <div class=\"gm-toggle\" id=\"gm-toggle-wrap\">\
         <input type=\"checkbox\" id=\"gm-check\">\
         <label for=\"gm-check\" style=\"cursor:pointer;\">\
           <span>Voglio essere il Censore</span>\
@@ -142,7 +146,6 @@ function markupPagina() {
       </div>\
       <button class=\"sit-btn\" id=\"sit-btn\">Siediti al tavolo</button>\
     </div>\
-    <p class=\"footer-note\" id=\"footer-note\">La partita inizia quando il Censore decide di aprire la prima scena.</p>\
   </div>\
 \
   <div class=\"stage\" id=\"gm-panel-wrap\" style=\"display:none;\">\
@@ -216,9 +219,6 @@ function scriptPagina() {
     var msg = JSON.parse(event.data);\
     if (msg.type === 'benvenuto') {\
       mioId = msg.playerId;\
-      if (msg.giaSeduto) {\
-        document.getElementById('join-panel').style.display = 'none';\
-      }\
       aggiornaSchermata(msg.stato);\
     } else if (msg.type === 'stato') {\
       aggiornaSchermata(msg.stato);\
@@ -233,7 +233,6 @@ function scriptPagina() {
     var vuoleGM = document.getElementById('gm-check').checked;\
     if (!nickname) { alert('Scrivi un nome prima di sederti.'); return; }\
     socket.send(JSON.stringify({ type: 'siediti', nickname: nickname, competenza: competenza, vuoleGM: vuoleGM }));\
-    document.getElementById('join-panel').style.display = 'none';\
   });\
 \
   document.getElementById('apri-scena-btn').addEventListener('click', function () {\
@@ -244,7 +243,12 @@ function scriptPagina() {
   });\
 \
   function aggiornaSchermata(stato) {\
+    var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
     var sonoIlGM = stato.gmId === mioId;\
+\
+    document.getElementById('join-panel-wrap').style.display = sonoSeduto ? 'none' : 'block';\
+    document.getElementById('gm-toggle-wrap').style.display = stato.gmId ? 'none' : 'flex';\
+\
     document.getElementById('gm-panel-wrap').style.display = sonoIlGM ? 'block' : 'none';\
     if (sonoIlGM) {\
       document.getElementById('gm-panel-title').textContent =\
