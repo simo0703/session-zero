@@ -1,5 +1,6 @@
 // Session Zero — motore di gioco multiplayer
 // Fase 4bis: regole vere de La Soglia (tracce a 6 caselle, soglia 1-3, pool variabile)
+// Fase 5: verifica del codice d'accesso (D1) per diventare host di una stanza
 
 import { creaStatoIniziale, gameConfigs } from "./schema.js";
 import { paginaLobby } from "./pages.js";
@@ -49,6 +50,27 @@ export class GameRoom {
     }
   }
 
+  // Verifica un codice contro la tabella access_codes in D1, filtrato per il
+  // gioco della stanza corrente: un codice del libro di un mondo non deve mai
+  // sbloccare l'accesso host in un altro mondo (il muro vale anche qui).
+  async codiceValido(codiceInserito) {
+    const codice = (codiceInserito || "").trim().toUpperCase();
+    if (!codice) return false;
+    try {
+      const riga = await this.env.DB.prepare(
+        "SELECT code FROM access_codes WHERE code = ? AND game_id = ? AND active = 1"
+      )
+        .bind(codice, this.stato.gameId)
+        .first();
+      return !!riga;
+    } catch (e) {
+      // Se D1 non risponde, non blocchiamo silenziosamente concedendo
+      // l'accesso: meglio un errore visibile che un buco di sicurezza.
+      console.error("Errore verifica codice:", e);
+      return false;
+    }
+  }
+
   async fetch(request) {
     const url = new URL(request.url);
     const roomCode = url.searchParams.get("room") || "TEST01";
@@ -74,7 +96,9 @@ export class GameRoom {
       }
 
       server.addEventListener("message", (event) => {
-        this.gestisciMessaggio(playerId, server, event.data);
+        this.gestisciMessaggio(playerId, server, event.data).catch((e) => {
+          console.error("Errore gestione messaggio:", e);
+        });
       });
 
       server.addEventListener("close", () => {
@@ -116,7 +140,7 @@ export class GameRoom {
     });
   }
 
-  gestisciMessaggio(playerId, socket, raw) {
+  async gestisciMessaggio(playerId, socket, raw) {
     let msg;
     try {
       msg = JSON.parse(raw);
@@ -142,9 +166,23 @@ export class GameRoom {
       const postiOccupati = this.stato.players.filter(
         (p) => p.connesso !== false && p.role === "player"
       ).length;
-      const vuoleGM = !!msg.vuoleGM && !this.stato.gmId;
+      const vuoleEssereHost = !!msg.vuoleGM && !this.stato.gmId;
 
-      if (!vuoleGM && postiOccupati >= 6) {
+      if (vuoleEssereHost) {
+        const valido = await this.codiceValido(msg.codice);
+        if (!valido) {
+          socket.send(
+            JSON.stringify({
+              type: "errore",
+              messaggio:
+                "Codice non valido. Controlla il codice stampato nel libro.",
+            })
+          );
+          return;
+        }
+      }
+
+      if (!vuoleEssereHost && postiOccupati >= 6) {
         socket.send(
           JSON.stringify({ type: "errore", messaggio: "Il tavolo è pieno." })
         );
@@ -154,14 +192,14 @@ export class GameRoom {
       const nuovoPlayer = {
         id: playerId,
         nickname: (msg.nickname || "Senza nome").slice(0, 24),
-        role: vuoleGM ? "gm" : "player",
+        role: vuoleEssereHost ? "gm" : "player",
         competenzaPrincipale: msg.competenza || "",
         tracce: { corpo: 0, equipaggiamento: 0, copertura: 0 },
         connesso: true,
       };
 
       this.stato.players.push(nuovoPlayer);
-      if (vuoleGM) this.stato.gmId = playerId;
+      if (vuoleEssereHost) this.stato.gmId = playerId;
 
       this.salvaStato();
       this.broadcast();
@@ -411,5 +449,3 @@ export default {
     });
   },
 };
-
-

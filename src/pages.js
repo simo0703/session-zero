@@ -155,6 +155,10 @@ function markupPagina() {
           <small id=\"gm-toggle-sub\">Aprirai le scene e gestirai l'Orologio.</small>\
         </label>\
       </div>\
+      <div class=\"field\" id=\"codice-wrap\" style=\"display:none;\">\
+        <label id=\"codice-label\">Codice del libro</label>\
+        <input type=\"text\" id=\"codice-input\" placeholder=\"Il codice stampato nel tuo libro\" style=\"text-transform:uppercase;\">\
+      </div>\
       <button class=\"sit-btn\" id=\"sit-btn\">Siediti al tavolo</button>\
     </div>\
   </div>\
@@ -321,12 +325,18 @@ function scriptPagina() {
       'Guiderai la partita: apri le scene, gestisci ' + configAttuale.terminologia.orologio + '.';\
   }\
 \
+  document.getElementById('gm-check').addEventListener('change', function () {\
+    document.getElementById('codice-wrap').style.display = this.checked ? 'block' : 'none';\
+  });\
+\
   document.getElementById('sit-btn').addEventListener('click', function () {\
     var nickname = document.getElementById('nickname').value.trim();\
     var competenza = document.getElementById('competenza').value;\
     var vuoleGM = document.getElementById('gm-check').checked;\
+    var codice = document.getElementById('codice-input').value.trim();\
     if (!nickname) { alert('Scrivi un nome prima di sederti.'); return; }\
-    socket.send(JSON.stringify({ type: 'siediti', nickname: nickname, competenza: competenza, vuoleGM: vuoleGM }));\
+    if (vuoleGM && !codice) { alert('Inserisci il codice stampato nel libro per guidare la partita.'); return; }\
+    socket.send(JSON.stringify({ type: 'siediti', nickname: nickname, competenza: competenza, vuoleGM: vuoleGM, codice: codice }));\
   });\
 \
   document.getElementById('apri-scena-btn').addEventListener('click', function () {\
@@ -373,6 +383,9 @@ function scriptPagina() {
 \
     document.getElementById('join-panel-wrap').style.display = sonoSeduto ? 'none' : 'block';\
     document.getElementById('gm-toggle-wrap').style.display = stato.gmId ? 'none' : 'flex';\
+    if (stato.gmId) {\
+      document.getElementById('codice-wrap').style.display = 'none';\
+    }\
 \
     document.getElementById('gm-panel-wrap').style.display = sonoIlGM ? 'block' : 'none';\
     if (sonoIlGM) {\
