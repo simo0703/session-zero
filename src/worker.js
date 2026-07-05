@@ -389,6 +389,23 @@ export class GameRoom {
       return;
     }
 
+    if (msg.type === "iscrivi_email") {
+      // Casella facoltativa dopo lo sblocco host: nessun invio reale finché
+      // la newsletter di Ferrara non esiste, solo salvataggio in D1.
+      const email = (msg.email || "").trim().slice(0, 200);
+      if (!email || !email.includes("@")) return;
+      try {
+        await this.env.DB.prepare(
+          "INSERT INTO newsletter_signups (email, room_code) VALUES (?, ?)"
+        )
+          .bind(email, this.stato.roomCode)
+          .run();
+      } catch (e) {
+        console.error("Errore salvataggio email:", e);
+      }
+      return;
+    }
+
     if (msg.type === "spendi_margine") {
       const scena = this.stato.scenaCorrente;
       if (

@@ -302,6 +302,18 @@ function markupPagina() {
     </div>\
   </div>\
 \
+  <div class=\"stage\" id=\"email-panel-wrap\" style=\"display:none;\">\
+    <div class=\"join-panel\">\
+      <p class=\"join-title\">Resta aggiornato</p>\
+      <p style=\"font-size:13px;color:var(--mist);margin:0 0 14px;line-height:1.5;\">Vuoi restare aggiornato sui prossimi romanzi di S. B. Ferrara e i vari scenari del gioco di ruolo? Lasciaci la tua email.</p>\
+      <div class=\"field\">\
+        <input type=\"email\" id=\"email-input\" placeholder=\"La tua email (facoltativa)\">\
+      </div>\
+      <button class=\"sit-btn\" id=\"email-submit-btn\">Salva email</button>\
+      <button class=\"copy-btn\" id=\"email-skip-btn\" style=\"width:100%;margin-top:8px;\">No grazie</button>\
+    </div>\
+  </div>\
+\
   <div class=\"stage\" id=\"gm-panel-wrap\" style=\"display:none;\">\
     <div class=\"panel\" id=\"gm-controls\">\
       <p class=\"panel-title\" id=\"gm-panel-title\">Apri la prima scena</p>\
@@ -478,6 +490,20 @@ function scriptPagina() {
     document.getElementById('codice-wrap').style.display = this.checked ? 'block' : 'none';\
   });\
 \
+  document.getElementById('email-submit-btn').addEventListener('click', function () {\
+    var email = document.getElementById('email-input').value.trim();\
+    if (email) {\
+      socket.send(JSON.stringify({ type: 'iscrivi_email', email: email }));\
+    }\
+    localStorage.setItem('sz_newsletter_prompted', '1');\
+    document.getElementById('email-panel-wrap').style.display = 'none';\
+  });\
+\
+  document.getElementById('email-skip-btn').addEventListener('click', function () {\
+    localStorage.setItem('sz_newsletter_prompted', '1');\
+    document.getElementById('email-panel-wrap').style.display = 'none';\
+  });\
+\
   document.getElementById('sit-btn').addEventListener('click', function () {\
     var nickname = document.getElementById('nickname').value.trim();\
     var competenza = document.getElementById('competenza').value;\
@@ -537,6 +563,9 @@ function scriptPagina() {
     }\
 \
     document.getElementById('gm-panel-wrap').style.display = sonoIlGM ? 'block' : 'none';\
+    var giaChiestaEmail = localStorage.getItem('sz_newsletter_prompted');\
+    document.getElementById('email-panel-wrap').style.display =\
+      (sonoIlGM && !giaChiestaEmail) ? 'block' : 'none';\
     if (sonoIlGM) {\
       document.getElementById('gm-panel-title').textContent =\
         stato.log.sceneAperte > 0 ? 'Apri la prossima scena' : 'Apri la prima scena';\
