@@ -150,6 +150,7 @@ export function paginaLobby() {
     "<title>Session Zero — Lobby</title>" +
     "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">" +
     "<link href=\"https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap\" rel=\"stylesheet\">" +
+    "<script src=\"https://meet.jit.si/external_api.js\"></script>" +
     "<style>" + stileCss() + "</style>" +
     "</head>" +
     "<body>" +
@@ -277,6 +278,16 @@ function markupPagina() {
       </div>\
     </div>\
     <p class=\"status-line\" id=\"status-line\">Connessione in corso…</p>\
+  </div>\
+\
+  <div class=\"stage\" id=\"chiamata-wrap\">\
+    <div class=\"join-panel\" style=\"padding:16px 20px; margin-bottom:14px;\">\
+      <div style=\"display:flex; justify-content:space-between; align-items:center;\">\
+        <p class=\"join-title\" style=\"margin:0;\">Chiamata vocale</p>\
+        <button type=\"button\" class=\"copy-btn\" id=\"chiamata-toggle-btn\">Attiva</button>\
+      </div>\
+      <div id=\"jitsi-container\" style=\"display:none; margin-top:14px; border-radius:8px; overflow:hidden; height:400px;\"></div>\
+    </div>\
   </div>\
 \
   <div class=\"stage\" id=\"mia-scheda-wrap\" style=\"display:none;\">\
@@ -507,6 +518,35 @@ function scriptPagina() {
     setTimeout(function () { self.textContent = 'Copia link'; }, 1500);\
   });\
 \
+  var jitsiApi = null;\
+  document.getElementById('chiamata-toggle-btn').addEventListener('click', function () {\
+    var container = document.getElementById('jitsi-container');\
+    var btn = this;\
+    if (jitsiApi) {\
+      jitsiApi.dispose();\
+      jitsiApi = null;\
+      container.style.display = 'none';\
+      container.innerHTML = '';\
+      btn.textContent = 'Attiva';\
+      return;\
+    }\
+    if (typeof JitsiMeetExternalAPI === 'undefined') {\
+      alert('La chiamata non si è caricata correttamente. Ricarica la pagina e riprova.');\
+      return;\
+    }\
+    container.style.display = 'block';\
+    var nomeDaMostrare = nicknameScelto || document.getElementById('nickname').value.trim() || 'Ospite';\
+    jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {\
+      roomName: 'session-zero-stanza-' + roomCode,\
+      parentNode: container,\
+      width: '100%',\
+      height: 400,\
+      configOverwrite: { startWithVideoMuted: true, prejoinPageEnabled: false },\
+      userInfo: { displayName: nomeDaMostrare }\
+    });\
+    btn.textContent = 'Disattiva';\
+  });\
+\
   var SIMBOLI = ['🧭', '🪢', '🔑', '🪶', '⏳', '🗺️', '🎲', '🔦'];\
   var simboloSelezionato = SIMBOLI[0];\
   var pickerEl = document.getElementById('symbol-picker');\
@@ -537,6 +577,7 @@ function scriptPagina() {
   var mioId = null;\
   var configAttuale = null;\
   var mestiereSelezionato = '';\
+  var nicknameScelto = '';\
   var valoreExtra1 = 2;\
   var valoreExtra2 = 1;\
 \
@@ -710,6 +751,7 @@ function scriptPagina() {
     var codice = document.getElementById('codice-input').value.trim();\
     if (!nickname) { alert('Scrivi un nome prima di sederti.'); return; }\
     if (vuoleGM && !codice) { alert('Inserisci il codice stampato nel libro per guidare la partita.'); return; }\
+    nicknameScelto = nickname;\
 \
     var payload = { type: 'siediti', nickname: nickname, vuoleGM: vuoleGM, codice: codice, simbolo: simboloSelezionato };\
 \
