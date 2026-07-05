@@ -51,7 +51,18 @@ export class GameRoom {
       const [client, server] = Object.values(pair);
       server.accept();
 
-      const playerId = "p_" + Math.random().toString(36).slice(2, 9);
+      // Se il browser ha già un identificativo salvato (da una sessione precedente
+      // nella stessa stanza), lo riusiamo: così chi ricarica la pagina viene
+      // riconosciuto come la stessa persona invece di dover sedersi di nuovo.
+      const clientId = url.searchParams.get("clientId");
+      const playerId = clientId || "p_" + Math.random().toString(36).slice(2, 9);
+
+      const giocatoreEsistente = this.stato.players.find(
+        (p) => p.id === playerId
+      );
+      if (giocatoreEsistente) {
+        giocatoreEsistente.connesso = true;
+      }
 
       server.addEventListener("message", (event) => {
         this.gestisciMessaggio(playerId, server, event.data);
@@ -69,10 +80,22 @@ export class GameRoom {
 
       this.sockets.set(playerId, server);
 
-      // Il client riceve subito il proprio id e lo stato attuale della stanza
+      if (giocatoreEsistente) {
+        await this.salvaStato();
+      }
+
       server.send(
-        JSON.stringify({ type: "benvenuto", playerId, stato: this.stato })
+        JSON.stringify({
+          type: "benvenuto",
+          playerId,
+          giaSeduto: !!giocatoreEsistente,
+          stato: this.stato,
+        })
       );
+
+      if (giocatoreEsistente) {
+        this.broadcast();
+      }
 
       return new Response(null, { status: 101, webSocket: client });
     }
@@ -92,6 +115,20 @@ export class GameRoom {
     }
 
     if (msg.type === "siediti") {
+      const giaEsistente = this.stato.players.find((p) => p.id === playerId);
+      if (giaEsistente) {
+        giaEsistente.nickname = (msg.nickname || giaEsistente.nickname).slice(
+          0,
+          24
+        );
+        giaEsistente.competenzaPrincipale =
+          msg.competenza || giaEsistente.competenzaPrincipale;
+        giaEsistente.connesso = true;
+        this.salvaStato();
+        this.broadcast();
+        return;
+      }
+
       const postiOccupati = this.stato.players.filter(
         (p) => p.connesso !== false && p.role === "player"
       ).length;

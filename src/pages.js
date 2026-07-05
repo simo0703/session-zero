@@ -1,6 +1,5 @@
-// Session Zero — pagina della lobby
+// Session Zero — pagina della lobby e della schermata di gioco
 // Restituisce l'HTML completo (stile + markup + script) come stringa.
-// Il colore/tipografia riprendono la direzione approvata (feltro, ottone, gesso).
 
 export function paginaLobby() {
   return (
@@ -15,8 +14,8 @@ export function paginaLobby() {
     "<style>" + stileCss() + "</style>" +
     "</head>" +
     "<body>" +
-    markupLobby() +
-    "<script>" + scriptLobby() + "</script>" +
+    markupPagina() +
+    "<script>" + scriptPagina() + "</script>" +
     "</body>" +
     "</html>"
   );
@@ -33,17 +32,18 @@ function stileCss() {
   body {\
     margin: 0; background: var(--walnut); color: var(--chalk);\
     font-family: 'Source Sans 3', sans-serif; min-height: 100vh;\
-    display: flex; align-items: center; justify-content: center; padding: 32px 16px;\
+    padding: 32px 16px 60px;\
   }\
-  .stage { width: 100%; max-width: 760px; }\
-  .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 28px; flex-wrap: wrap; gap: 12px; }\
+  .stage { width: 100%; max-width: 760px; margin: 0 auto; }\
+  .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }\
   .brand { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; }\
   .brand span { color: var(--brass-bright); }\
   .room-info { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--mist); }\
   .room-code { background: rgba(0,0,0,0.25); border: 1px solid var(--mist-dim); padding: 5px 10px; border-radius: 4px; color: var(--brass-bright); letter-spacing: 0.08em; }\
   .copy-btn { background: none; border: 1px solid var(--mist-dim); color: var(--mist); padding: 5px 10px; border-radius: 4px; font-family: inherit; font-size: 12px; cursor: pointer; }\
   .copy-btn:hover { border-color: var(--brass); color: var(--brass-bright); }\
-  .table-wrap { background: var(--walnut-dark); border-radius: 20px; padding: 40px 24px 32px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px rgba(0,0,0,0.35); }\
+  .status-line { text-align: center; font-size: 12px; color: var(--mist-dim); margin-bottom: 14px; }\
+  .table-wrap { background: var(--walnut-dark); border-radius: 20px; padding: 40px 24px 32px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px rgba(0,0,0,0.35); margin-bottom: 18px; }\
   .table { position: relative; width: 100%; max-width: 460px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle at 42% 38%, rgba(255,255,255,0.05), transparent 55%), radial-gradient(circle, var(--felt) 0%, var(--felt-dark) 100%); box-shadow: inset 0 0 0 8px var(--walnut), inset 0 0 40px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.4); }\
   .seat { position: absolute; width: 74px; height: 74px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transform: translate(-50%, -50%); }\
   .seat .ring { width: 54px; height: 54px; border-radius: 50%; border: 2px dashed var(--mist-dim); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--mist-dim); background: rgba(0,0,0,0.15); }\
@@ -59,7 +59,7 @@ function stileCss() {
   .gm-seat .label { margin-top: 4px; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; color: rgba(255,255,255,0.85); }\
   .table-caption { text-align: center; margin-top: 22px; color: var(--mist); font-size: 14px; font-style: italic; }\
   .table-caption strong { color: var(--chalk); font-style: normal; }\
-  .join-panel { margin-top: 28px; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 22px 24px; }\
+  .join-panel { background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.06); border-radius: 14px; padding: 22px 24px; margin-bottom: 18px; }\
   .join-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 16px; margin: 0 0 16px; }\
   .field { margin-bottom: 14px; }\
   .field label { display: block; font-size: 12px; color: var(--mist); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }\
@@ -71,9 +71,7 @@ function stileCss() {
   .gm-toggle small { display: block; color: var(--mist); font-weight: 400; }\
   .sit-btn { width: 100%; background: var(--brass); color: var(--walnut-dark); border: none; border-radius: 8px; padding: 13px; font-weight: 600; font-size: 15px; cursor: pointer; }\
   .sit-btn:hover { background: var(--brass-bright); }\
-  .sit-btn:disabled { background: rgba(255,255,255,0.1); color: var(--mist-dim); cursor: default; }\
-  .footer-note { text-align: center; margin-top: 18px; font-size: 12px; color: var(--mist-dim); }\
-  .status-line { text-align: center; font-size: 12px; color: var(--mist-dim); margin-bottom: 14px; }\
+  .footer-note { text-align: center; font-size: 12px; color: var(--mist-dim); }\
   .orologio-wrap { display: flex; align-items: center; gap: 10px; }\
   .orologio-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mist); }\
   .orologio-ring { display: flex; gap: 4px; }\
@@ -84,7 +82,7 @@ function stileCss() {
   .scene-text { font-size: 16px; line-height: 1.6; margin: 0; white-space: pre-wrap; }\
   .panel { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }\
   .panel-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--mist); margin: 0 0 12px; }\
-  .gm-textarea { width: 100%; min-height: 110px; background: #EDE6D6; color: #2A2118; border: none; border-radius: 8px; padding: 14px 16px; font-family: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }\
+  .gm-textarea { width: 100%; min-height: 100px; background: #EDE6D6; color: #2A2118; border: none; border-radius: 8px; padding: 14px 16px; font-family: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }\
   .btn-primary { background: var(--brass); color: var(--walnut-dark); border: none; border-radius: 8px; padding: 11px 18px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 10px; }\
   .btn-primary:hover { background: var(--brass-bright); }\
   .roster-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px; }\
@@ -93,7 +91,7 @@ function stileCss() {
   ";
 }
 
-function markupLobby() {
+function markupPagina() {
   return "\
   <div class=\"stage\">\
     <div class=\"topbar\">\
@@ -105,6 +103,9 @@ function markupLobby() {
       </div>\
     </div>\
     <p class=\"status-line\" id=\"status-line\">Connessione in corso…</p>\
+  </div>\
+\
+  <div class=\"stage\" id=\"lobby-screen\">\
     <div class=\"table-wrap\">\
       <div class=\"table\" id=\"table\">\
         <div class=\"gm-seat\" id=\"gm-seat\"><div class=\"die\">⚄</div><div class=\"label\">Censore</div></div>\
@@ -143,9 +144,18 @@ function markupLobby() {
     </div>\
     <p class=\"footer-note\" id=\"footer-note\">La partita inizia quando il Censore decide di aprire la prima scena.</p>\
   </div>\
+\
+  <div class=\"stage\" id=\"gm-panel-wrap\" style=\"display:none;\">\
+    <div class=\"panel\" id=\"gm-controls\">\
+      <p class=\"panel-title\" id=\"gm-panel-title\">Apri la prima scena</p>\
+      <textarea class=\"gm-textarea\" id=\"scene-input\" placeholder=\"Scrivi qui il testo della scena…\"></textarea>\
+      <button class=\"btn-primary\" id=\"apri-scena-btn\">Apri scena</button>\
+    </div>\
+  </div>\
+\
   <div class=\"stage\" id=\"game-screen\" style=\"display:none;\">\
     <div class=\"topbar\">\
-      <div class=\"brand\">SESSION <span>ZERO</span></div>\
+      <span></span>\
       <div class=\"orologio-wrap\">\
         <span class=\"orologio-label\">L'Orologio</span>\
         <div class=\"orologio-ring\" id=\"orologio-ring\"></div>\
@@ -155,11 +165,6 @@ function markupLobby() {
       <p class=\"scene-eyebrow\" id=\"scene-eyebrow\">Scena</p>\
       <p class=\"scene-text\" id=\"scene-text\"></p>\
     </div>\
-    <div class=\"panel\" id=\"gm-controls\" style=\"display:none;\">\
-      <p class=\"panel-title\">Apri la prossima scena</p>\
-      <textarea class=\"gm-textarea\" id=\"scene-input\" placeholder=\"Scrivi qui il testo della scena…\"></textarea>\
-      <button class=\"btn-primary\" id=\"apri-scena-btn\">Apri scena</button>\
-    </div>\
     <div class=\"panel\">\
       <p class=\"panel-title\">Il tavolo</p>\
       <div id=\"roster-list\"></div>\
@@ -168,7 +173,7 @@ function markupLobby() {
   ";
 }
 
-function scriptLobby() {
+function scriptPagina() {
   return "\
   var params = new URLSearchParams(window.location.search);\
   var roomCode = params.get('room');\
@@ -187,8 +192,15 @@ function scriptLobby() {
     setTimeout(function () { self.textContent = 'Copia link'; }, 1500);\
   });\
 \
+  var storageKey = 'sz_client_' + roomCode;\
+  var clientId = localStorage.getItem(storageKey);\
+  if (!clientId) {\
+    clientId = 'c_' + Math.random().toString(36).slice(2, 10);\
+    localStorage.setItem(storageKey, clientId);\
+  }\
+\
   var protocollo = window.location.protocol === 'https:' ? 'wss:' : 'ws:';\
-  var wsUrl = protocollo + '//' + window.location.host + '/ws?room=' + roomCode + '&game=' + gameId;\
+  var wsUrl = protocollo + '//' + window.location.host + '/ws?room=' + roomCode + '&game=' + gameId + '&clientId=' + clientId;\
   var socket = new WebSocket(wsUrl);\
   var mioId = null;\
 \
@@ -204,9 +216,12 @@ function scriptLobby() {
     var msg = JSON.parse(event.data);\
     if (msg.type === 'benvenuto') {\
       mioId = msg.playerId;\
-      aggiornaTavolo(msg.stato);\
+      if (msg.giaSeduto) {\
+        document.getElementById('join-panel').style.display = 'none';\
+      }\
+      aggiornaSchermata(msg.stato);\
     } else if (msg.type === 'stato') {\
-      aggiornaTavolo(msg.stato);\
+      aggiornaSchermata(msg.stato);\
     } else if (msg.type === 'errore') {\
       alert(msg.messaggio);\
     }\
@@ -228,12 +243,30 @@ function scriptLobby() {
     document.getElementById('scene-input').value = '';\
   });\
 \
-  function aggiornaTavolo(stato) {\
-    if (stato.status === 'playing') {\
-      mostraSchermataGioco(stato);\
-      return;\
+  function aggiornaSchermata(stato) {\
+    var sonoIlGM = stato.gmId === mioId;\
+\
+    // Pannello del Censore: sempre visibile a chi ha quel ruolo, in ogni fase\
+    document.getElementById('gm-panel-wrap').style.display = sonoIlGM ? 'block' : 'none';\
+    if (sonoIlGM) {\
+      document.getElementById('gm-panel-title').textContent =\
+        stato.log.sceneAperte > 0 ? 'Apri la prossima scena' : 'Apri la prima scena';\
+      document.getElementById('apri-scena-btn').textContent =\
+        stato.log.sceneAperte > 0 ? 'Apri prossima scena' : 'Apri scena';\
     }\
 \
+    if (stato.status === 'playing') {\
+      document.getElementById('lobby-screen').style.display = 'none';\
+      document.getElementById('game-screen').style.display = 'block';\
+      renderizzaSchermataGioco(stato);\
+    } else {\
+      document.getElementById('lobby-screen').style.display = 'block';\
+      document.getElementById('game-screen').style.display = 'none';\
+      renderizzaTavoloLobby(stato, sonoIlGM);\
+    }\
+  }\
+\
+  function renderizzaTavoloLobby(stato, sonoIlGM) {\
     var seats = document.querySelectorAll('.seat');\
     var giocatori = stato.players.filter(function (p) { return p.role === 'player'; });\
     for (var i = 0; i < seats.length; i++) {\
@@ -266,17 +299,12 @@ function scriptLobby() {
       'Il tavolo si sta riempiendo — <strong>' + giocatori.length + ' di 6</strong> posti occupati. ' +\
       (gm ? 'Il Censore si è seduto.' : 'Il Censore non si è ancora seduto.');\
 \
-    if (gm && gm.id === mioId) {\
-      document.getElementById('footer-note').textContent = 'Sei il Censore. Quando vuoi, apri la prima scena per iniziare la partita.';\
-    }\
+    document.getElementById('footer-note').textContent = sonoIlGM\
+      ? 'Sei il Censore. Scrivi la prima scena qui sotto quando vuoi iniziare.'\
+      : 'La partita inizia quando il Censore apre la prima scena.';\
   }\
 \
-  function mostraSchermataGioco(stato) {\
-    document.querySelector('.table-wrap').style.display = 'none';\
-    document.getElementById('join-panel').style.display = 'none';\
-    document.getElementById('footer-note').style.display = 'none';\
-    document.getElementById('game-screen').style.display = 'block';\
-\
+  function renderizzaSchermataGioco(stato) {\
     var ring = document.getElementById('orologio-ring');\
     ring.innerHTML = '';\
     for (var i = 0; i < stato.orologio.soglia; i++) {\
@@ -287,13 +315,6 @@ function scriptLobby() {
 \
     document.getElementById('scene-eyebrow').textContent = 'Scena ' + (stato.scenaCorrente.id || 1);\
     document.getElementById('scene-text').textContent = stato.scenaCorrente.testo || '';\
-\
-    var sonoIlGM = stato.gmId === mioId;\
-    document.getElementById('gm-controls').style.display = sonoIlGM ? 'block' : 'none';\
-    if (sonoIlGM) {\
-      document.getElementById('apri-scena-btn').textContent =\
-        stato.log.sceneAperte > 0 ? 'Apri prossima scena' : 'Apri scena';\
-    }\
 \
     var rosterList = document.getElementById('roster-list');\
     rosterList.innerHTML = '';\
