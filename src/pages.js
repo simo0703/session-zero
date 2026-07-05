@@ -1,6 +1,140 @@
 // Session Zero — pagina della lobby e della schermata di gioco
 // Restituisce l'HTML completo (stile + markup + script) come stringa.
 
+export function paginaAdmin(gameIds) {
+  var opzioniGioco = gameIds
+    .map(function (id) {
+      return "<option value=\"" + id + "\">" + id + "</option>";
+    })
+    .join("");
+
+  return (
+    "<!DOCTYPE html>" +
+    "<html lang=\"it\">" +
+    "<head>" +
+    "<meta charset=\"UTF-8\">" +
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+    "<title>Session Zero — Area riservata</title>" +
+    "<script src=\"https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js\"></script>" +
+    "<style>" + stileAdmin() + "</style>" +
+    "</head>" +
+    "<body>" +
+    markupAdmin(opzioniGioco) +
+    "<script>" + scriptAdmin() + "</script>" +
+    "</body>" +
+    "</html>"
+  );
+}
+
+function stileAdmin() {
+  return "\
+  :root {\
+    --walnut: #2B1B14; --walnut-dark: #1C120C; --chalk: #F3EEE2;\
+    --brass: #C08A3E; --brass-bright: #D9A559; --mist: #8FA89C; --mist-dim: #5C7469;\
+  }\
+  * { box-sizing: border-box; }\
+  body {\
+    margin: 0; background: var(--walnut); color: var(--chalk);\
+    font-family: 'Source Sans 3', sans-serif; min-height: 100vh;\
+    display: flex; justify-content: center; padding: 48px 16px;\
+  }\
+  .box { width: 100%; max-width: 420px; }\
+  h1 { font-size: 18px; margin: 0 0 22px; }\
+  .field { margin-bottom: 14px; }\
+  .field label { display: block; font-size: 12px; color: var(--mist); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }\
+  .field input, .field select { width: 100%; background: var(--walnut-dark); border: 1px solid var(--mist-dim); border-radius: 8px; padding: 10px 12px; color: var(--chalk); font-family: inherit; font-size: 14px; }\
+  .field input:focus, .field select:focus { outline: none; border-color: var(--brass); }\
+  button { width: 100%; background: var(--brass); color: var(--walnut-dark); border: none; border-radius: 8px; padding: 13px; font-weight: 600; font-size: 15px; cursor: pointer; }\
+  button:hover { background: var(--brass-bright); }\
+  button:disabled { opacity: 0.6; cursor: default; }\
+  #risultato { display: none; margin-top: 26px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; }\
+  #codice-generato { font-family: 'JetBrains Mono', monospace; font-size: 22px; letter-spacing: 0.1em; color: var(--brass-bright); margin: 0 0 14px; }\
+  #qr-canvas { margin: 0 auto 14px; display: block; border-radius: 8px; }\
+  #link-generato { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--mist); word-break: break-all; margin-bottom: 12px; }\
+  .secondary-btn { background: none; border: 1px solid var(--mist-dim); color: var(--mist); padding: 8px 14px; border-radius: 6px; font-size: 12px; width: auto; }\
+  .secondary-btn:hover { border-color: var(--brass); color: var(--brass-bright); background: none; }\
+  ";
+}
+
+function markupAdmin(opzioniGioco) {
+  return "\
+  <div class=\"box\">\
+    <h1>Session Zero — Genera codice d'accesso</h1>\
+    <form id=\"admin-form\">\
+      <div class=\"field\">\
+        <label>Password</label>\
+        <input type=\"password\" id=\"password\" autocomplete=\"off\">\
+      </div>\
+      <div class=\"field\">\
+        <label>Gioco</label>\
+        <select id=\"gioco\">" + opzioniGioco + "</select>\
+      </div>\
+      <div class=\"field\">\
+        <label>Nota (facoltativa — es. email del cliente)</label>\
+        <input type=\"text\" id=\"nota\" placeholder=\"mario.rossi@esempio.it\">\
+      </div>\
+      <button type=\"submit\" id=\"genera-btn\">Genera codice</button>\
+    </form>\
+    <div id=\"risultato\">\
+      <p id=\"codice-generato\"></p>\
+      <canvas id=\"qr-canvas\"></canvas>\
+      <p id=\"link-generato\"></p>\
+      <button type=\"button\" class=\"secondary-btn\" id=\"copia-link-btn\">Copia link</button>\
+    </div>\
+  </div>\
+  ";
+}
+
+function scriptAdmin() {
+  return "\
+  var form = document.getElementById('admin-form');\
+  var risultatoBox = document.getElementById('risultato');\
+  var qrCanvas = document.getElementById('qr-canvas');\
+\
+  form.addEventListener('submit', function (e) {\
+    e.preventDefault();\
+    var password = document.getElementById('password').value;\
+    var gioco = document.getElementById('gioco').value;\
+    var nota = document.getElementById('nota').value;\
+    var btn = document.getElementById('genera-btn');\
+    btn.disabled = true;\
+    btn.textContent = 'Genero…';\
+    fetch('/admin/genera', {\
+      method: 'POST',\
+      headers: { 'Content-Type': 'application/json' },\
+      body: JSON.stringify({ password: password, gameId: gioco, nota: nota })\
+    })\
+      .then(function (r) { return r.json(); })\
+      .then(function (data) {\
+        btn.disabled = false;\
+        btn.textContent = 'Genera codice';\
+        if (data.errore) {\
+          alert(data.errore);\
+          return;\
+        }\
+        document.getElementById('codice-generato').textContent = data.code;\
+        document.getElementById('link-generato').textContent = data.url;\
+        risultatoBox.style.display = 'block';\
+        QRCode.toCanvas(qrCanvas, data.url, { width: 220, margin: 1 }, function (err) {\
+          if (err) console.error(err);\
+        });\
+      })\
+      .catch(function (err) {\
+        btn.disabled = false;\
+        btn.textContent = 'Genera codice';\
+        alert('Errore di rete: ' + err.message);\
+      });\
+  });\
+\
+  document.getElementById('copia-link-btn').addEventListener('click', function () {\
+    navigator.clipboard.writeText(document.getElementById('link-generato').textContent);\
+    this.textContent = 'Copiato!';\
+    var self = this;\
+    setTimeout(function () { self.textContent = 'Copia link'; }, 1500);\
+  });\
+  ";
+}
+
 export function paginaLobby() {
   return (
     "<!DOCTYPE html>" +
@@ -250,6 +384,16 @@ function scriptPagina() {
     window.history.replaceState({}, '', nuovoUrl);\
   }\
   document.getElementById('room-code').textContent = roomCode;\
+\
+  var codiceParam = params.get('codice');\
+  var autohostParam = params.get('autohost');\
+  if (codiceParam) {\
+    document.getElementById('codice-input').value = codiceParam;\
+  }\
+  if (autohostParam === '1') {\
+    document.getElementById('gm-check').checked = true;\
+    document.getElementById('codice-wrap').style.display = 'block';\
+  }\
 \
   document.getElementById('copy-btn').addEventListener('click', function () {\
     navigator.clipboard.writeText(window.location.href);\
