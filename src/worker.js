@@ -37,11 +37,33 @@ export class GameRoom {
     const salvato = await this.ctx.storage.get("stato");
     if (salvato) {
       this.stato = salvato;
+      this.applicaMigrazioneStato();
     } else {
       this.stato = creaStatoIniziale(roomCode, gameId);
       await this.ctx.storage.put("stato", this.stato);
     }
     return this.stato;
+  }
+
+  // Le stanze create prima di un aggiornamento del motore restano con lo
+  // stato salvato al momento della loro nascita: i campi aggiunti dopo
+  // (es. la chat) semplicemente non ci sono. Qui li completiamo con valori
+  // di default, così ogni stanza vecchia resta compatibile con le nuove
+  // funzionalità senza bisogno di essere ricreata.
+  applicaMigrazioneStato() {
+    if (!Array.isArray(this.stato.chat)) this.stato.chat = [];
+    if (typeof this.stato.linkChiamata !== "string") this.stato.linkChiamata = "";
+    if (this.stato.ultimoSuggerimento === undefined) this.stato.ultimoSuggerimento = null;
+
+    const scena = this.stato.scenaCorrente;
+    if (scena) {
+      if (typeof scena.libreriaId !== "string") scena.libreriaId = "";
+      if (!scena.dichiarazioni || typeof scena.dichiarazioni !== "object") scena.dichiarazioni = {};
+      if (!Array.isArray(scena.risultatoDadiAzzardo)) scena.risultatoDadiAzzardo = [];
+      if (typeof scena.doveScaricareAzzardo !== "string") scena.doveScaricareAzzardo = "";
+      if (typeof scena.costoAzzardo !== "number") scena.costoAzzardo = 0;
+      if (typeof scena.segnoAzzardoTesto !== "string") scena.segnoAzzardoTesto = "";
+    }
   }
 
   async salvaStato() {
