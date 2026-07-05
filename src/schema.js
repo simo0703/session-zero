@@ -16,37 +16,44 @@ function creaStatoIniziale(roomCode, gameId) {
     status: "lobby", // "lobby" | "playing" | "ended"
     createdAt: Date.now(),
 
-    // Chi c'è in stanza. L'host è sempre players[0] finché non si assegna il Censore.
+    // Chi c'è in stanza. L'host è sempre players[0] finché non si assegna il narratore.
     players: [],
     // Esempio di un player:
     // {
-    //   id: "p1",                  // identificatore interno di sessione (non persistente)
+    //   id: "p1",
     //   nickname: "Marta",
     //   role: "player",            // "player" | "gm"
-    //   competenzaPrincipale: "",  // scelta in lobby, dipende da gameConfig
-    //   misura: 0,                 // il "conto" personale — dipende dal gioco
+    //   competenzaPrincipale: "",  // scelta tra le competenze di gameConfig
+    //   tracce: { corpo: 0, equipaggiamento: 0, copertura: 0 }, // 0-6 ciascuna
     //   connesso: true
     // }
 
-    gmId: null, // id del player che ha scelto di fare il Censore/GM
+    gmId: null, // id del player che guida la partita (narratore / Censore, secondo il gioco)
 
     // L'Orologio dell'atto — avanza ogni due scene (regola fissata nel Design Bible cartaceo)
     orologio: {
       valore: 0,
-      soglia: 8, // quando raggiunge la soglia, l'atto si chiude
+      soglia: 8,
       sceneContate: 0
     },
 
-    // La scena attualmente aperta dal Censore
+    // La scena attualmente aperta da chi guida la partita
     scenaCorrente: {
       id: null,
       testo: "",
       tiroRichiesto: false,
-      giocatoreCoinvolto: null
+      giocatoreCoinvolto: null,
+      competenzaRichiesta: "",
+      sogliaRichiesta: 0,
+      tracciaARischio: "",
+      numDadi: 0,
+      tiroEffettuato: false,
+      risultatoDadi: [],
+      successi: 0,
+      esito: "", // "pieno" | "costo" | "fallimento"
+      segnoTesto: ""
     },
 
-    // Storico essenziale della sessione (non persistito oltre la sessione stessa,
-    // usato solo per calcolare le statistiche finali)
     log: {
       sceneAperte: 0,
       tiriEffettuati: 0,
@@ -56,32 +63,76 @@ function creaStatoIniziale(roomCode, gameId) {
 }
 
 /**
- * Configurazione specifica di ogni gioco. Questo è il livello che li differenzia
- * senza toccare il motore. Va completato con i dati reali di ciascun Design Bible
- * (competenze, tabelle dei segni, soglie di dado) quando costruiamo i contenuti.
+ * Configurazione specifica di ogni gioco: quello che li differenzia senza
+ * toccare il motore. I dati de "La Soglia" sono presi dal Design Bible
+ * cartaceo (v1.3). Quelli di "The Ledger Game" restano da compilare.
  */
 const gameConfigs = {
   "la-soglia": {
     nome: "La Soglia",
     lingua: "it",
-    competenze: [], // da compilare con le 12 competenze del Design Bible Ferrara
-    orologioSoglia: 8,
     terminologia: {
-      misura: "la Misura",
-      gm: "il Censore",
+      gm: "il narratore",
+      gmMaiuscolo: "Il narratore",
       orologio: "l'Orologio"
-    }
+    },
+    competenze: [
+      "Terreno", "Corde", "Strumenti", "Lingue", "Sangue freddo", "Carico",
+      "Acqua", "Meccanica", "Medicina", "Orientamento", "Trattativa", "Silenzio"
+    ],
+    // Tre tracce di conseguenza, 6 caselle ciascuna. Ogni casella ha un segno
+    // pronto da leggere ad alta voce così com'è — mai il nome dell'emozione,
+    // solo il fatto, come vuole lo stile Ferrara.
+    tracce: {
+      corpo: {
+        label: "Corpo",
+        segni: [
+          "Il fiato si allunga di un respiro, sul gradino che prima non contava",
+          "Una vescica sul palmo, ancora ignorata",
+          "La mano sinistra si chiude a metà, e la si nasconde in tasca",
+          "Il passo rallenta senza che lo si decida",
+          "Le dita non sentono più la corda, solo il suo peso",
+          "Il corpo smette di rispondere agli ordini: qualcun altro deve deciderne il passo"
+        ]
+      },
+      equipaggiamento: {
+        label: "Equipaggiamento",
+        segni: [
+          "La batteria di riserva segna già meno del previsto",
+          "Un moschettone ha un graffio nuovo, profondo",
+          "L'acqua nella seconda tanica sa di plastica calda",
+          "La torcia principale vira al giallo",
+          "Uno strumento smette di rispondere ai comandi, poi riparte da solo — una volta",
+          "Quello che serviva davvero non risponde più, e non c'è tempo di aprirlo"
+        ]
+      },
+      copertura: {
+        label: "Copertura",
+        segni: [
+          "Il nome della Guida viene ripetuto due volte da chi lo ascolta",
+          "Un documento ha una data che nessuno aveva controllato",
+          "Qualcuno, al villaggio, fa una domanda che non c'entra — e resta a guardare la risposta",
+          "Il capoposto tiene i documenti un secondo di troppo prima di restituirli",
+          "Un'auto senza insegne passa due volte sulla stessa strada",
+          "Qualcuno vi sta cercando — e sa dove"
+        ]
+      }
+    },
+    orologioSoglia: 8
   },
   "ledger-game": {
     nome: "The Ledger Game",
     lingua: "en",
-    competenze: [], // da compilare con le competenze/ruoli del Design Bible Stahl
-    orologioSoglia: 8,
     terminologia: {
-      misura: "the Ledger",
       gm: "the Censor",
+      gmMaiuscolo: "The Censor",
       orologio: "the Clock"
-    }
+    },
+    competenze: [], // da compilare con le competenze/ruoli del Design Bible Stahl
+    tracce: {
+      ledger: { label: "the Ledger", segni: [] } // da compilare
+    },
+    orologioSoglia: 8
   }
 };
 

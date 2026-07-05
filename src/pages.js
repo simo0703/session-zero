@@ -122,7 +122,7 @@ function markupPagina() {
   <div class=\"stage\" id=\"lobby-screen\">\
     <div class=\"table-wrap\">\
       <div class=\"table\" id=\"table\">\
-        <div class=\"gm-seat\" id=\"gm-seat\"><div class=\"die\">⚄</div><div class=\"label\">Censore</div></div>\
+        <div class=\"gm-seat\" id=\"gm-seat\"><div class=\"die\">⚄</div><div class=\"label\" id=\"gm-seat-label\">…</div></div>\
         <div class=\"seat\" data-pos=\"1\"><div class=\"ring\">＋</div><div class=\"label\">In attesa</div></div>\
         <div class=\"seat\" data-pos=\"2\"><div class=\"ring\">＋</div><div class=\"label\">In attesa</div></div>\
         <div class=\"seat\" data-pos=\"3\"><div class=\"ring\">＋</div><div class=\"label\">In attesa</div></div>\
@@ -132,7 +132,7 @@ function markupPagina() {
       </div>\
       <p class=\"table-caption\" id=\"table-caption\">In attesa che il tavolo si riempia.</p>\
     </div>\
-    <p class=\"footer-note\" id=\"footer-note\">La partita inizia quando il Censore decide di aprire la prima scena.</p>\
+    <p class=\"footer-note\" id=\"footer-note\">La partita inizia quando chi guida decide di aprire la prima scena.</p>\
   </div>\
 \
   <div class=\"stage\" id=\"join-panel-wrap\">\
@@ -146,16 +146,13 @@ function markupPagina() {
         <label>Competenza principale</label>\
         <select id=\"competenza\">\
           <option value=\"\">Scegli una competenza</option>\
-          <option value=\"Sottrazione\">Sottrazione</option>\
-          <option value=\"Osservazione\">Osservazione</option>\
-          <option value=\"Dissimulazione\">Dissimulazione</option>\
         </select>\
       </div>\
       <div class=\"gm-toggle\" id=\"gm-toggle-wrap\">\
         <input type=\"checkbox\" id=\"gm-check\">\
         <label for=\"gm-check\" style=\"cursor:pointer;\">\
-          <span>Voglio essere il Censore</span>\
-          <small>Guiderai la partita: apri le scene, gestisci l'Orologio.</small>\
+          <span id=\"gm-toggle-label\">Voglio guidare la partita</span>\
+          <small id=\"gm-toggle-sub\">Aprirai le scene e gestirai l'Orologio.</small>\
         </label>\
       </div>\
       <button class=\"sit-btn\" id=\"sit-btn\">Siediti al tavolo</button>\
@@ -177,15 +174,23 @@ function markupPagina() {
         </div>\
         <div class=\"field-inline\">\
           <label>Competenza</label>\
-          <select id=\"tiro-competenza\">\
-            <option value=\"Sottrazione\">Sottrazione</option>\
-            <option value=\"Osservazione\">Osservazione</option>\
-            <option value=\"Dissimulazione\">Dissimulazione</option>\
-          </select>\
+          <select id=\"tiro-competenza\"></select>\
+        </div>\
+        <div class=\"field-inline\">\
+          <label>Numero dadi</label>\
+          <input type=\"number\" id=\"tiro-numdadi\" value=\"3\" min=\"1\" max=\"6\">\
         </div>\
         <div class=\"field-inline\">\
           <label>Soglia</label>\
-          <input type=\"number\" id=\"tiro-soglia\" value=\"2\" min=\"1\" max=\"4\">\
+          <select id=\"tiro-soglia\">\
+            <option value=\"1\">1 — facile</option>\
+            <option value=\"2\" selected>2 — ostile</option>\
+            <option value=\"3\">3 — al limite</option>\
+          </select>\
+        </div>\
+        <div class=\"field-inline\">\
+          <label>Traccia a rischio</label>\
+          <select id=\"tiro-traccia\"></select>\
         </div>\
         <button class=\"btn-primary\" id=\"richiedi-tiro-btn\">Richiedi tiro</button>\
       </div>\
@@ -249,6 +254,7 @@ function scriptPagina() {
   var wsUrl = protocollo + '//' + window.location.host + '/ws?room=' + roomCode + '&game=' + gameId + '&clientId=' + clientId;\
   var socket = new WebSocket(wsUrl);\
   var mioId = null;\
+  var configAttuale = null;\
 \
   socket.addEventListener('open', function () {\
     document.getElementById('status-line').textContent = 'Connesso alla stanza ' + roomCode + '.';\
@@ -262,13 +268,47 @@ function scriptPagina() {
     var msg = JSON.parse(event.data);\
     if (msg.type === 'benvenuto') {\
       mioId = msg.playerId;\
+      configAttuale = msg.config;\
+      inizializzaConConfig();\
       aggiornaSchermata(msg.stato);\
     } else if (msg.type === 'stato') {\
+      configAttuale = msg.config;\
       aggiornaSchermata(msg.stato);\
     } else if (msg.type === 'errore') {\
       alert(msg.messaggio);\
     }\
   });\
+\
+  function inizializzaConConfig() {\
+    var selComp = document.getElementById('competenza');\
+    configAttuale.competenze.forEach(function (c) {\
+      var opt = document.createElement('option');\
+      opt.value = c;\
+      opt.textContent = c;\
+      selComp.appendChild(opt);\
+    });\
+\
+    var selTiroComp = document.getElementById('tiro-competenza');\
+    configAttuale.competenze.forEach(function (c) {\
+      var opt = document.createElement('option');\
+      opt.value = c;\
+      opt.textContent = c;\
+      selTiroComp.appendChild(opt);\
+    });\
+\
+    var selTraccia = document.getElementById('tiro-traccia');\
+    Object.keys(configAttuale.tracce).forEach(function (chiave) {\
+      var opt = document.createElement('option');\
+      opt.value = chiave;\
+      opt.textContent = configAttuale.tracce[chiave].label;\
+      selTraccia.appendChild(opt);\
+    });\
+\
+    document.getElementById('gm-toggle-label').textContent =\
+      'Voglio essere ' + configAttuale.terminologia.gm;\
+    document.getElementById('gm-toggle-sub').textContent =\
+      'Guiderai la partita: apri le scene, gestisci ' + configAttuale.terminologia.orologio + '.';\
+  }\
 \
   document.getElementById('sit-btn').addEventListener('click', function () {\
     var nickname = document.getElementById('nickname').value.trim();\
@@ -288,9 +328,18 @@ function scriptPagina() {
   document.getElementById('richiedi-tiro-btn').addEventListener('click', function () {\
     var giocatoreId = document.getElementById('tiro-giocatore').value;\
     var competenza = document.getElementById('tiro-competenza').value;\
+    var numDadi = document.getElementById('tiro-numdadi').value;\
     var soglia = document.getElementById('tiro-soglia').value;\
+    var traccia = document.getElementById('tiro-traccia').value;\
     if (!giocatoreId) { alert('Scegli un giocatore.'); return; }\
-    socket.send(JSON.stringify({ type: 'richiedi_tiro', giocatoreId: giocatoreId, competenza: competenza, soglia: soglia }));\
+    socket.send(JSON.stringify({\
+      type: 'richiedi_tiro',\
+      giocatoreId: giocatoreId,\
+      competenza: competenza,\
+      numDadi: numDadi,\
+      soglia: soglia,\
+      traccia: traccia\
+    }));\
   });\
 \
   document.getElementById('tira-dadi-btn').addEventListener('click', function () {\
@@ -344,21 +393,22 @@ function scriptPagina() {
 \
     var gmSeat = document.getElementById('gm-seat');\
     var gm = stato.players.find(function (p) { return p.role === 'gm'; });\
+    var terminGm = configAttuale.terminologia.gmMaiuscolo;\
     if (gm) {\
       gmSeat.classList.add('filled');\
       gmSeat.querySelector('.label').textContent = gm.nickname + (gm.id === mioId ? ' (tu)' : '');\
     } else {\
       gmSeat.classList.remove('filled');\
-      gmSeat.querySelector('.label').textContent = 'Censore';\
+      gmSeat.querySelector('.label').textContent = terminGm;\
     }\
 \
     document.getElementById('table-caption').innerHTML =\
       'Il tavolo si sta riempiendo — <strong>' + giocatori.length + ' di 6</strong> posti occupati. ' +\
-      (gm ? 'Il Censore si è seduto.' : 'Il Censore non si è ancora seduto.');\
+      (gm ? terminGm + ' si è seduto.' : terminGm + ' non si è ancora seduto.');\
 \
     document.getElementById('footer-note').textContent = sonoIlGM\
-      ? 'Sei il Censore. Scrivi la prima scena qui sotto quando vuoi iniziare.'\
-      : 'La partita inizia quando il Censore apre la prima scena.';\
+      ? 'Sei ' + configAttuale.terminologia.gm + '. Scrivi la prima scena qui sotto quando vuoi iniziare.'\
+      : 'La partita inizia quando ' + configAttuale.terminologia.gm + ' apre la prima scena.';\
   }\
 \
   function renderizzaSchermataGioco(stato) {\
@@ -396,8 +446,12 @@ function scriptPagina() {
     var sonoIoIlDestinatario = scena.tiroRichiesto && scena.giocatoreCoinvolto === mioId;\
     if (sonoIoIlDestinatario) {\
       pannelloTiro.style.display = 'block';\
+      var etichettaTraccia = configAttuale.tracce[scena.tracciaARischio]\
+        ? configAttuale.tracce[scena.tracciaARischio].label\
+        : scena.tracciaARischio;\
       document.getElementById('tiro-status').innerHTML =\
-        'Il Censore chiede un tiro di <strong>' + scena.competenzaRichiesta + '</strong>. Soglia: <strong>' + scena.sogliaRichiesta + ' successi</strong>.';\
+        configAttuale.terminologia.gmMaiuscolo + ' chiede un tiro di <strong>' + scena.competenzaRichiesta +\
+        '</strong> — ' + scena.numDadi + ' dadi, soglia <strong>' + scena.sogliaRichiesta + '</strong>. In gioco: ' + etichettaTraccia + '.';\
 \
       var diceRow = document.getElementById('dice-row');\
       diceRow.innerHTML = '';\
@@ -411,8 +465,18 @@ function scriptPagina() {
       var esito = document.getElementById('tiro-esito');\
       var btn = document.getElementById('tira-dadi-btn');\
       if (scena.tiroEffettuato) {\
-        esito.textContent = 'Risultato: ' + scena.successi + ' successi su ' + scena.sogliaRichiesta +\
-          (scena.successi >= scena.sogliaRichiesta ? ' — sopra soglia.' : ' — sotto soglia.');\
+        var testoEsito = '';\
+        if (scena.esito === 'pieno') {\
+          testoEsito = 'Pieno successo: ' + scena.successi + ' su ' + scena.sogliaRichiesta + '. Nessun costo.';\
+        } else if (scena.esito === 'costo') {\
+          testoEsito = 'Successo con costo: ' + scena.successi + ' su ' + scena.sogliaRichiesta + '.';\
+        } else {\
+          testoEsito = 'Nessun successo. Il mondo risponde.';\
+        }\
+        if (scena.segnoTesto) {\
+          testoEsito += '<br><em>' + scena.segnoTesto + '</em>';\
+        }\
+        esito.innerHTML = testoEsito;\
         btn.disabled = true;\
         btn.textContent = 'Tiro già effettuato';\
       } else {\
@@ -431,16 +495,22 @@ function scriptPagina() {
       row.className = 'roster-row';\
       var nomeConTu = p.nickname + (p.id === mioId ? ' (tu)' : '');\
       if (p.role === 'gm') {\
-        row.innerHTML = '<span>' + nomeConTu + '</span><span class=\"roster-tag\">Censore</span>';\
-      } else {\
-        var segmenti = '';\
-        for (var s = 0; s < 8; s++) {\
-          segmenti += '<div class=\"seg' + (s < p.misura ? ' filled' : '') + '\"></div>';\
-        }\
-        row.innerHTML =\
-          '<div><span>' + nomeConTu + '</span><span class=\"roster-tag\" style=\"margin-left:8px;\">' + (p.competenzaPrincipale || 'Giocatore') + '</span></div>' +\
-          '<div class=\"roster-misura\">' + segmenti + '</div>';\
+        row.innerHTML = '<span>' + nomeConTu + '</span><span class=\"roster-tag\">' + configAttuale.terminologia.gmMaiuscolo + '</span>';\
+        rosterList.appendChild(row);\
+        return;\
       }\
+      var tracceHtml = Object.keys(configAttuale.tracce).map(function (chiave) {\
+        var valore = p.tracce ? (p.tracce[chiave] || 0) : 0;\
+        var segmenti = '';\
+        for (var s = 0; s < 6; s++) {\
+          segmenti += '<div class=\"seg' + (s < valore ? ' filled' : '') + '\"></div>';\
+        }\
+        return '<div style=\"margin-top:4px;\"><span class=\"roster-tag\">' + configAttuale.tracce[chiave].label +\
+          '</span><div class=\"roster-misura\">' + segmenti + '</div></div>';\
+      }).join('');\
+      row.innerHTML =\
+        '<div style=\"width:100%;\"><div><span>' + nomeConTu + '</span><span class=\"roster-tag\" style=\"margin-left:8px;\">' +\
+        (p.competenzaPrincipale || '') + '</span></div>' + tracceHtml + '</div>';\
       rosterList.appendChild(row);\
     });\
   }\

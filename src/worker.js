@@ -1,14 +1,10 @@
 // Session Zero — motore di gioco multiplayer
-// Fase 4: motore del tiro di dadi
+// Fase 4bis: regole vere de La Soglia (tracce a 6 caselle, soglia 1-3, pool variabile)
 
-import { creaStatoIniziale } from "./schema.js";
+import { creaStatoIniziale, gameConfigs } from "./schema.js";
 import { paginaLobby } from "./pages.js";
 
-// Pool di dadi e soglia di successo per dado — valori di base (1/3 di probabilità
-// per dado, come da calibrazione già usata nel Design Bible cartaceo). Regolabili
-// in seguito quando colleghiamo le regole esatte del gioco pubblicato.
-const NUMERO_DADI = 4;
-const SUCCESSO_DA = 5; // un dado è un successo se esce 5 o 6
+const SUCCESSO_DA = 5; // un dado è un successo se esce 5 o 6 (regola confermata dal Design Bible)
 
 export class GameRoom {
   constructor(ctx, env) {
@@ -34,9 +30,16 @@ export class GameRoom {
     await this.ctx.storage.put("stato", this.stato);
   }
 
-  // Invia lo stato aggiornato a tutti i partecipanti connessi alla stanza
+  // Invia lo stato aggiornato a tutti i partecipanti connessi alla stanza,
+  // insieme alla configurazione del gioco in corso (terminologia, competenze,
+  // tracce) così il client non ha mai bisogno di indovinare quale gioco è.
   broadcast() {
-    const payload = JSON.stringify({ type: "stato", stato: this.stato });
+    const config = gameConfigs[this.stato.gameId] || gameConfigs["la-soglia"];
+    const payload = JSON.stringify({
+      type: "stato",
+      stato: this.stato,
+      config,
+    });
     for (const [id, ws] of this.sockets) {
       try {
         ws.send(payload);
@@ -96,6 +99,7 @@ export class GameRoom {
           playerId,
           giaSeduto: !!giocatoreEsistente,
           stato: this.stato,
+          config: gameConfigs[this.stato.gameId] || gameConfigs["la-soglia"],
         })
       );
 
@@ -152,7 +156,7 @@ export class GameRoom {
         nickname: (msg.nickname || "Senza nome").slice(0, 24),
         role: vuoleGM ? "gm" : "player",
         competenzaPrincipale: msg.competenza || "",
-        misura: 0,
+        tracce: { corpo: 0, equipaggiamento: 0, copertura: 0 },
         connesso: true,
       };
 
@@ -165,12 +169,12 @@ export class GameRoom {
     }
 
     if (msg.type === "apri_scena") {
-      // Solo il Censore/GM può aprire una scena
+      // Solo chi guida la partita può aprire una scena
       if (playerId !== this.stato.gmId) {
         socket.send(
           JSON.stringify({
             type: "errore",
-            messaggio: "Solo il Censore può aprire una scena.",
+            messaggio: "Solo chi guida la partita può aprire una scena.",
           })
         );
         return;
@@ -187,9 +191,13 @@ export class GameRoom {
         giocatoreCoinvolto: null,
         competenzaRichiesta: "",
         sogliaRichiesta: 0,
+        tracciaARischio: "",
+        numDadi: 0,
         tiroEffettuato: false,
         risultatoDadi: [],
         successi: 0,
+        esito: "",
+        segnoTesto: "",
       };
       this.stato.log.sceneAperte += 1;
 
@@ -209,12 +217,12 @@ export class GameRoom {
     }
 
     if (msg.type === "richiedi_tiro") {
-      // Solo il Censore può chiedere un tiro, e solo a scena aperta
+      // Solo chi guida la partita può chiedere un tiro, e solo a scena aperta
       if (playerId !== this.stato.gmId) {
         socket.send(
           JSON.stringify({
             type: "errore",
-            messaggio: "Solo il Censore può richiedere un tiro.",
+            messaggio: "Solo chi guida la partita può richiedere un tiro.",
           })
         );
         return;
@@ -226,15 +234,28 @@ export class GameRoom {
       );
       if (!giocatore) return;
 
-      const soglia = Math.max(1, Math.min(4, parseInt(msg.soglia, 10) || 2));
+      // Soglia 1 (facile) - 2 (ostile) - 3 (al limite), come da Design Bible.
+      const soglia = Math.max(1, Math.min(3, parseInt(msg.soglia, 10) || 1));
+      // Il numero di dadi è competenza + approccio: lo calcola chi narra a
+      // mente seguendo la regola cartacea, e lo inserisce qui direttamente.
+      const numDadi = Math.max(1, Math.min(6, parseInt(msg.numDadi, 10) || 1));
+      const traccia = ["corpo", "equipaggiamento", "copertura"].includes(
+        msg.traccia
+      )
+        ? msg.traccia
+        : "corpo";
 
       this.stato.scenaCorrente.tiroRichiesto = true;
       this.stato.scenaCorrente.giocatoreCoinvolto = giocatore.id;
       this.stato.scenaCorrente.competenzaRichiesta = msg.competenza || "";
       this.stato.scenaCorrente.sogliaRichiesta = soglia;
+      this.stato.scenaCorrente.numDadi = numDadi;
+      this.stato.scenaCorrente.tracciaARischio = traccia;
       this.stato.scenaCorrente.tiroEffettuato = false;
       this.stato.scenaCorrente.risultatoDadi = [];
       this.stato.scenaCorrente.successi = 0;
+      this.stato.scenaCorrente.esito = "";
+      this.stato.scenaCorrente.segnoTesto = "";
 
       this.salvaStato();
       this.broadcast();
@@ -253,7 +274,7 @@ export class GameRoom {
 
       const risultati = [];
       let successi = 0;
-      for (let i = 0; i < NUMERO_DADI; i++) {
+      for (let i = 0; i < scena.numDadi; i++) {
         const valore = 1 + Math.floor(Math.random() * 6);
         risultati.push(valore);
         if (valore >= SUCCESSO_DA) successi++;
@@ -264,13 +285,39 @@ export class GameRoom {
       scena.tiroEffettuato = true;
       this.stato.log.tiriEffettuati += 1;
 
-      // Sotto soglia: il costo si riflette sulla Misura del giocatore.
-      // Regola segnaposto — da sostituire con la formula esatta quando
-      // colleghiamo le regole definitive del Design Bible.
-      if (successi < scena.sogliaRichiesta) {
-        const giocatore = this.stato.players.find((p) => p.id === playerId);
+      const giocatore = this.stato.players.find((p) => p.id === playerId);
+      const config =
+        gameConfigs[this.stato.gameId] || gameConfigs["la-soglia"];
+      const traccia = scena.tracciaARischio;
+
+      // Regola vera: successi >= soglia → pieno successo, nessun costo.
+      // Successi sotto soglia ma almeno uno → riuscita con costo, la traccia
+      // segna una casella. Zero successi → il mondo risponde, costo doppio.
+      if (successi >= scena.sogliaRichiesta) {
+        scena.esito = "pieno";
+      } else if (successi > 0) {
+        scena.esito = "costo";
         if (giocatore) {
-          giocatore.misura = Math.min(giocatore.misura + 1, 8);
+          giocatore.tracce[traccia] = Math.min(
+            giocatore.tracce[traccia] + 1,
+            6
+          );
+        }
+      } else {
+        scena.esito = "fallimento";
+        if (giocatore) {
+          giocatore.tracce[traccia] = Math.min(
+            giocatore.tracce[traccia] + 2,
+            6
+          );
+        }
+      }
+
+      if (giocatore && scena.esito !== "pieno") {
+        const nuovoValore = giocatore.tracce[traccia];
+        const tabella = config.tracce[traccia];
+        if (tabella && tabella.segni[nuovoValore - 1]) {
+          scena.segnoTesto = tabella.segni[nuovoValore - 1];
         }
       }
 
