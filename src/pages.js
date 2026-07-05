@@ -204,6 +204,10 @@ function stileCss() {
   .field label { display: block; font-size: 12px; color: var(--mist); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }\
   .field input, .field select { width: 100%; background: var(--walnut-dark); border: 1px solid var(--mist-dim); border-radius: 8px; padding: 10px 12px; color: var(--chalk); font-family: 'Source Sans 3', sans-serif; font-size: 14px; }\
   .field input:focus, .field select:focus { outline: none; border-color: var(--brass); }\
+  .symbol-picker { display: flex; gap: 8px; flex-wrap: wrap; }\
+  .symbol-btn { width: 46px; height: 46px; border-radius: 8px; background: var(--walnut-dark); border: 1px solid var(--mist-dim); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }\
+  .symbol-btn:hover { border-color: var(--brass); }\
+  .symbol-btn.selected { border-color: var(--brass); background: var(--brass); box-shadow: 0 0 10px rgba(192,138,62,0.5); }\
   .gm-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding: 10px 12px; background: rgba(180,72,58,0.08); border: 1px solid rgba(180,72,58,0.3); border-radius: 8px; }\
   .gm-toggle input { accent-color: var(--ember); width: 16px; height: 16px; }\
   .gm-toggle span { font-size: 13px; }\
@@ -286,6 +290,10 @@ function markupPagina() {
         <select id=\"competenza\">\
           <option value=\"\">Scegli una competenza</option>\
         </select>\
+      </div>\
+      <div class=\"field\">\
+        <label>Il tuo simbolo</label>\
+        <div class=\"symbol-picker\" id=\"symbol-picker\"></div>\
       </div>\
       <div class=\"gm-toggle\" id=\"gm-toggle-wrap\">\
         <input type=\"checkbox\" id=\"gm-check\">\
@@ -419,6 +427,23 @@ function scriptPagina() {
     setTimeout(function () { self.textContent = 'Copia link'; }, 1500);\
   });\
 \
+  var SIMBOLI = ['🧭', '🪢', '🔑', '🪶', '⏳', '🗺️', '🎲', '🔦'];\
+  var simboloSelezionato = SIMBOLI[0];\
+  var pickerEl = document.getElementById('symbol-picker');\
+  SIMBOLI.forEach(function (s, idx) {\
+    var btn = document.createElement('button');\
+    btn.type = 'button';\
+    btn.className = 'symbol-btn' + (idx === 0 ? ' selected' : '');\
+    btn.textContent = s;\
+    btn.addEventListener('click', function () {\
+      simboloSelezionato = s;\
+      var tutti = pickerEl.querySelectorAll('.symbol-btn');\
+      tutti.forEach(function (b) { b.classList.remove('selected'); });\
+      btn.classList.add('selected');\
+    });\
+    pickerEl.appendChild(btn);\
+  });\
+\
   var storageKey = 'sz_client_' + roomCode;\
   var clientId = localStorage.getItem(storageKey);\
   if (!clientId) {\
@@ -511,7 +536,7 @@ function scriptPagina() {
     var codice = document.getElementById('codice-input').value.trim();\
     if (!nickname) { alert('Scrivi un nome prima di sederti.'); return; }\
     if (vuoleGM && !codice) { alert('Inserisci il codice stampato nel libro per guidare la partita.'); return; }\
-    socket.send(JSON.stringify({ type: 'siediti', nickname: nickname, competenza: competenza, vuoleGM: vuoleGM, codice: codice }));\
+    socket.send(JSON.stringify({ type: 'siediti', nickname: nickname, competenza: competenza, vuoleGM: vuoleGM, codice: codice, simbolo: simboloSelezionato }));\
   });\
 \
   document.getElementById('apri-scena-btn').addEventListener('click', function () {\
@@ -594,7 +619,7 @@ function scriptPagina() {
       var label = seat.querySelector('.label');\
       if (g) {\
         seat.classList.add('filled');\
-        ring.textContent = g.nickname.charAt(0).toUpperCase();\
+        ring.textContent = g.simbolo || g.nickname.charAt(0).toUpperCase();\
         label.textContent = g.nickname + (g.id === mioId ? ' (tu)' : '');\
       } else {\
         seat.classList.remove('filled');\
@@ -608,9 +633,11 @@ function scriptPagina() {
     var terminGm = configAttuale.terminologia.gmMaiuscolo;\
     if (gm) {\
       gmSeat.classList.add('filled');\
+      gmSeat.querySelector('.die').textContent = gm.simbolo || '⚄';\
       gmSeat.querySelector('.label').textContent = gm.nickname + (gm.id === mioId ? ' (tu)' : '');\
     } else {\
       gmSeat.classList.remove('filled');\
+      gmSeat.querySelector('.die').textContent = '⚄';\
       gmSeat.querySelector('.label').textContent = terminGm;\
     }\
 \
@@ -742,7 +769,7 @@ function scriptPagina() {
     stato.players.forEach(function (p) {\
       var row = document.createElement('div');\
       row.className = 'roster-row';\
-      var nomeConTu = p.nickname + (p.id === mioId ? ' (tu)' : '');\
+      var nomeConTu = (p.simbolo ? p.simbolo + ' ' : '') + p.nickname + (p.id === mioId ? ' (tu)' : '');\
       if (p.role === 'gm') {\
         row.innerHTML = '<span>' + nomeConTu + '</span><span class=\"roster-tag\">' + configAttuale.terminologia.gmMaiuscolo + '</span>';\
         rosterList.appendChild(row);\

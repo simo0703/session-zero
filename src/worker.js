@@ -6,6 +6,11 @@
 import { creaStatoIniziale, gameConfigs } from "./schema.js";
 import { paginaLobby, paginaAdmin } from "./pages.js";
 
+// Simboli di gioco selezionabili alla creazione del personaggio. Whitelist
+// server-side: qualunque valore non presente qui viene ignorato e sostituito
+// con il primo della lista, per non permettere stringhe arbitrarie nello stato.
+const SIMBOLI_VALIDI = ["🧭", "🪢", "🔑", "🪶", "⏳", "🗺️", "🎲", "🔦"];
+
 const SUCCESSO_DA = 5; // un dado è un successo se esce 5 o 6 (regola confermata dal Design Bible)
 
 // Alfabeto per i codici generati a mano: esclude 0/O e 1/I per evitare
@@ -169,6 +174,9 @@ export class GameRoom {
         );
         giaEsistente.competenzaPrincipale =
           msg.competenza || giaEsistente.competenzaPrincipale;
+        giaEsistente.simbolo = SIMBOLI_VALIDI.includes(msg.simbolo)
+          ? msg.simbolo
+          : giaEsistente.simbolo || SIMBOLI_VALIDI[0];
         giaEsistente.connesso = true;
         this.salvaStato();
         this.broadcast();
@@ -206,6 +214,9 @@ export class GameRoom {
         nickname: (msg.nickname || "Senza nome").slice(0, 24),
         role: vuoleEssereHost ? "gm" : "player",
         competenzaPrincipale: msg.competenza || "",
+        simbolo: SIMBOLI_VALIDI.includes(msg.simbolo)
+          ? msg.simbolo
+          : SIMBOLI_VALIDI[0],
         tracce: { corpo: 0, equipaggiamento: 0, copertura: 0 },
         connesso: true,
       };
