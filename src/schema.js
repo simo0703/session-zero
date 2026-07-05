@@ -61,7 +61,15 @@ function creaStatoIniziale(roomCode, gameId) {
       segnoTesto: "",
       margine: 0,
       margineSpeso: false,
-      margineScelta: "" // "traccia" | "orologio"
+      margineScelta: "", // "traccia" | "orologio"
+      // Dadi d'Azzardo (Design Bible §4.1): fino a 2 dadi extra dichiarati
+      // dal giocatore prima del tiro. Un 1 naturale su di essi barra subito
+      // 1 casella sulla traccia dichiarata in anticipo, indipendentemente
+      // dall'esito complessivo del tiro.
+      risultatoDadiAzzardo: [],
+      doveScaricareAzzardo: "", // "corpo" | "equipaggiamento"
+      costoAzzardo: 0,
+      segnoAzzardoTesto: ""
     },
 
     log: {

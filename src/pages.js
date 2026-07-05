@@ -250,6 +250,8 @@ function stileCss() {
   .die { width: 46px; height: 46px; border-radius: 8px; background: rgba(255,255,255,0.1); color: var(--mist); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px; }\
   .die.success { background: var(--brass); color: var(--walnut-dark); }\
   .die.fail { background: rgba(255,255,255,0.08); color: var(--mist-dim); }\
+  .die.azzardo { border: 2px solid var(--ember); }\
+  .die.azzardo.costo { background: var(--ember); color: var(--chalk); }\
   .roster-misura { display: flex; gap: 3px; margin-top: 4px; }\
   .roster-misura .seg { width: 8px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.1); }\
   .roster-misura .seg.filled { background: var(--ember); }\
@@ -394,6 +396,23 @@ function markupPagina() {
     <div class=\"panel\" id=\"tiro-panel\" style=\"display:none;\">\
       <p class=\"panel-title\">Tiro richiesto</p>\
       <p class=\"roll-status\" id=\"tiro-status\"></p>\
+      <div id=\"azzardo-scelta\" class=\"roll-request-row\" style=\"margin-bottom:14px;\">\
+        <div class=\"field-inline\">\
+          <label>Dadi d'Azzardo</label>\
+          <select id=\"azzardo-numero\">\
+            <option value=\"0\">Nessuno</option>\
+            <option value=\"1\">1 dado</option>\
+            <option value=\"2\">2 dadi</option>\
+          </select>\
+        </div>\
+        <div class=\"field-inline\" id=\"azzardo-destinazione-wrap\" style=\"display:none;\">\
+          <label>Se esce 1, scarico su</label>\
+          <select id=\"azzardo-destinazione\">\
+            <option value=\"corpo\">Corpo</option>\
+            <option value=\"equipaggiamento\">Equipaggiamento</option>\
+          </select>\
+        </div>\
+      </div>\
       <div class=\"dice-row\" id=\"dice-row\"></div>\
       <p class=\"roll-status\" id=\"tiro-esito\"></p>\
       <button class=\"btn-primary\" id=\"tira-dadi-btn\">Tira i dadi</button>\
@@ -656,8 +675,19 @@ function scriptPagina() {
     }));\
   });\
 \
+  document.getElementById('azzardo-numero').addEventListener('change', function () {\
+    document.getElementById('azzardo-destinazione-wrap').style.display =\
+      this.value === '0' ? 'none' : 'flex';\
+  });\
+\
   document.getElementById('tira-dadi-btn').addEventListener('click', function () {\
-    socket.send(JSON.stringify({ type: 'tira_dadi' }));\
+    var numDadiAzzardo = document.getElementById('azzardo-numero').value;\
+    var doveScaricare = document.getElementById('azzardo-destinazione').value;\
+    socket.send(JSON.stringify({\
+      type: 'tira_dadi',\
+      numDadiAzzardo: numDadiAzzardo,\
+      doveScaricare: doveScaricare\
+    }));\
   });\
 \
   document.getElementById('margine-traccia-btn').addEventListener('click', function () {\
@@ -793,6 +823,18 @@ function scriptPagina() {
         die.textContent = valore;\
         diceRow.appendChild(die);\
       });\
+      scena.risultatoDadiAzzardo.forEach(function (valore) {\
+        var die = document.createElement('div');\
+        die.className = 'die azzardo ' + (valore === 1 ? 'costo' : (valore >= 5 ? 'success' : 'fail'));\
+        die.textContent = valore;\
+        diceRow.appendChild(die);\
+      });\
+\
+      document.getElementById('azzardo-scelta').style.display = scena.tiroEffettuato ? 'none' : 'flex';\
+      if (!scena.tiroEffettuato) {\
+        document.getElementById('azzardo-numero').value = '0';\
+        document.getElementById('azzardo-destinazione-wrap').style.display = 'none';\
+      }\
 \
       var esito = document.getElementById('tiro-esito');\
       var btn = document.getElementById('tira-dadi-btn');\
@@ -811,6 +853,15 @@ function scriptPagina() {
         }\
         if (scena.segnoTesto) {\
           testoEsito += '<br><em>' + scena.segnoTesto + '</em>';\
+        }\
+        if (scena.costoAzzardo > 0) {\
+          var etichettaAzzardo = configAttuale.tracce[scena.doveScaricareAzzardo]\
+            ? configAttuale.tracce[scena.doveScaricareAzzardo].label\
+            : scena.doveScaricareAzzardo;\
+          testoEsito += '<br>Rischio dichiarato: <strong>' + scena.costoAzzardo + '</strong> su ' + etichettaAzzardo + '.';\
+          if (scena.segnoAzzardoTesto) {\
+            testoEsito += '<br><em>' + scena.segnoAzzardoTesto + '</em>';\
+          }\
         }\
         esito.innerHTML = testoEsito;\
         btn.disabled = true;\

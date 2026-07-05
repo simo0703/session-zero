@@ -283,6 +283,10 @@ export class GameRoom {
         margine: 0,
         margineSpeso: false,
         margineScelta: "",
+        risultatoDadiAzzardo: [],
+        doveScaricareAzzardo: "",
+        costoAzzardo: 0,
+        segnoAzzardoTesto: "",
       };
       this.stato.log.sceneAperte += 1;
 
@@ -349,6 +353,10 @@ export class GameRoom {
       this.stato.scenaCorrente.margine = 0;
       this.stato.scenaCorrente.margineSpeso = false;
       this.stato.scenaCorrente.margineScelta = "";
+      this.stato.scenaCorrente.risultatoDadiAzzardo = [];
+      this.stato.scenaCorrente.doveScaricareAzzardo = "";
+      this.stato.scenaCorrente.costoAzzardo = 0;
+      this.stato.scenaCorrente.segnoAzzardoTesto = "";
 
       this.salvaStato();
       this.broadcast();
@@ -365,6 +373,21 @@ export class GameRoom {
         return;
       }
 
+      // Dadi d'Azzardo (Design Bible §4.1): fino a 2 dadi extra, dichiarati
+      // dal giocatore prima del tiro insieme a dove scaricare il costo di un
+      // eventuale 1 naturale. Danno successi come gli altri dadi, ma un 1 su
+      // di essi barra subito 1 casella — anche se il tiro nel complesso
+      // supera la Soglia.
+      const numDadiAzzardo = Math.max(
+        0,
+        Math.min(2, parseInt(msg.numDadiAzzardo, 10) || 0)
+      );
+      const doveScaricareAzzardo = ["corpo", "equipaggiamento"].includes(
+        msg.doveScaricare
+      )
+        ? msg.doveScaricare
+        : "corpo";
+
       const risultati = [];
       let successi = 0;
       for (let i = 0; i < scena.numDadi; i++) {
@@ -373,7 +396,16 @@ export class GameRoom {
         if (valore >= SUCCESSO_DA) successi++;
       }
 
+      const risultatiAzzardo = [];
+      for (let i = 0; i < numDadiAzzardo; i++) {
+        const valore = 1 + Math.floor(Math.random() * 6);
+        risultatiAzzardo.push(valore);
+        if (valore >= SUCCESSO_DA) successi++;
+      }
+
       scena.risultatoDadi = risultati;
+      scena.risultatoDadiAzzardo = risultatiAzzardo;
+      scena.doveScaricareAzzardo = doveScaricareAzzardo;
       scena.successi = successi;
       scena.tiroEffettuato = true;
       this.stato.log.tiriEffettuati += 1;
@@ -413,6 +445,23 @@ export class GameRoom {
         const tabella = config.tracce[traccia];
         if (tabella && tabella.segni[nuovoValore - 1]) {
           scena.segnoTesto = tabella.segni[nuovoValore - 1];
+        }
+      }
+
+      // Il costo dei Dadi d'Azzardo è indipendente dall'esito: un 1 naturale
+      // su di essi barra comunque la casella dichiarata in anticipo, anche
+      // su un pieno successo.
+      const costoAzzardo = risultatiAzzardo.filter((v) => v === 1).length;
+      if (costoAzzardo > 0 && giocatore) {
+        giocatore.tracce[doveScaricareAzzardo] = Math.min(
+          giocatore.tracce[doveScaricareAzzardo] + costoAzzardo,
+          6
+        );
+        scena.costoAzzardo = costoAzzardo;
+        const nuovoValoreAzzardo = giocatore.tracce[doveScaricareAzzardo];
+        const tabellaAzzardo = config.tracce[doveScaricareAzzardo];
+        if (tabellaAzzardo && tabellaAzzardo.segni[nuovoValoreAzzardo - 1]) {
+          scena.segnoAzzardoTesto = tabellaAzzardo.segni[nuovoValoreAzzardo - 1];
         }
       }
 
