@@ -15,6 +15,12 @@
       "tag": "v1",
       "new_sqlite_classes": ["GameRoom"]
     }
+  ],
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "session-zero-db",
+      "database_id": "ed0c31a1-2228-4e84-82e3-0cecff290b4a"
+    }
   ]
 }
-
