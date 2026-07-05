@@ -484,6 +484,10 @@ function markupPagina() {
       </div>\
       <div id=\"misura-in-corso\" style=\"display:none;\">\
         <p class=\"roll-status\" id=\"misura-stato-testo\"></p>\
+        <div id=\"misura-descrizione-gm-wrap\" style=\"display:none; border: 1px solid var(--ember); background: rgba(180,72,58,0.1); border-radius: 8px; padding: 10px 12px; margin-bottom: 12px;\">\
+          <p style=\"font-size:11px;color:var(--ember);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 4px;\">Come procede</p>\
+          <p style=\"font-size:13px;margin:0;\" id=\"misura-descrizione-gm-testo\"></p>\
+        </div>\
         <div class=\"roll-request-row\" id=\"misura-config-row\">\
           <div class=\"field-inline\" id=\"misura-competenza-wrap\" style=\"display:none;\">\
             <label>Competenza</label>\
@@ -529,10 +533,18 @@ function markupPagina() {
       <p class=\"roll-status\" id=\"misura-stato-condiviso-testo\"></p>\
     </div>\
     <div class=\"panel\" id=\"misura-player-panel\" style=\"display:none;\">\
-      <p class=\"panel-title\">Protocollo della Misura — il tuo tiro</p>\
-      <p class=\"roll-status\" id=\"misura-player-status\"></p>\
-      <div class=\"dice-row\" id=\"misura-dice-row\"></div>\
-      <button class=\"btn-primary\" id=\"misura-tira-btn\">Tira i dadi</button>\
+      <p class=\"panel-title\" id=\"misura-player-title\">Protocollo della Misura</p>\
+      <div id=\"misura-descrizione-wrap\" style=\"display:none;\">\
+        <p class=\"roll-status\">Descrivi come procedi in questo passo, prima che il narratore imposti il tiro.</p>\
+        <textarea class=\"gm-textarea\" id=\"misura-descrizione-input\" placeholder=\"Es. Ricontrollo i cavi due volte prima di installare…\" style=\"min-height:50px;\"></textarea>\
+        <button class=\"btn-primary\" id=\"misura-descrivi-btn\">Descrivi</button>\
+        <p class=\"roll-status\" id=\"misura-descrizione-conferma\" style=\"display:none;margin-top:6px;\">Descrizione inviata al narratore.</p>\
+      </div>\
+      <div id=\"misura-tiro-wrap\" style=\"display:none;margin-top:10px;\">\
+        <p class=\"roll-status\" id=\"misura-player-status\"></p>\
+        <div class=\"dice-row\" id=\"misura-dice-row\"></div>\
+        <button class=\"btn-primary\" id=\"misura-tira-btn\">Tira i dadi</button>\
+      </div>\
     </div>\
     <div class=\"panel\" id=\"approccio-panel\" style=\"display:none;\">\
       <p class=\"panel-title\">Proponi un'azione</p>\
@@ -922,6 +934,13 @@ function scriptPagina() {
 \
   document.getElementById('misura-tira-btn').addEventListener('click', function () {\
     socket.send(JSON.stringify({ type: 'tira_misura' }));\
+  });\
+\
+  document.getElementById('misura-descrivi-btn').addEventListener('click', function () {\
+    var testo = document.getElementById('misura-descrizione-input').value.trim();\
+    if (!testo) { alert('Scrivi come procedi prima di inviarlo.'); return; }\
+    socket.send(JSON.stringify({ type: 'descrivi_misura', testo: testo }));\
+    document.getElementById('misura-descrizione-conferma').style.display = 'block';\
   });\
 \
   document.getElementById('azzardo-numero').addEventListener('change', function () {\
@@ -1322,6 +1341,14 @@ function scriptPagina() {
           document.getElementById('misura-competenza-wrap').style.display =\
             misura.passo === 'calibrare' ? 'flex' : 'none';\
 \
+          var descrizioneWrapGM = document.getElementById('misura-descrizione-gm-wrap');\
+          if (misura.descrizione) {\
+            descrizioneWrapGM.style.display = 'block';\
+            document.getElementById('misura-descrizione-gm-testo').textContent = misura.descrizione;\
+          } else {\
+            descrizioneWrapGM.style.display = 'none';\
+          }\
+\
           var statoTesto = nomiPasso[misura.passo] + ' — ' + nomeConduttore +\
             ' — Soglia ' + misura.sogliaCorrente + ' (' + misura.competenzaCorrente + ')';\
           if (misura.tiroEffettuato) {\
@@ -1345,12 +1372,29 @@ function scriptPagina() {
     }\
 \
     var sonoIoIlConduttore = misura && misura.giocatoreId === mioId;\
-    if (sonoIoIlConduttore && misura.pronto && !misura.tiroEffettuato) {\
+    if (sonoIoIlConduttore && misura.passo !== 'completato' && !misura.tiroEffettuato) {\
       pannelloPlayer.style.display = 'block';\
-      document.getElementById('misura-player-status').textContent =\
-        nomiPasso[misura.passo] + ' — tiro di ' + misura.competenzaCorrente +\
-        ', soglia ' + misura.sogliaCorrente + '.';\
-      document.getElementById('misura-dice-row').innerHTML = '';\
+      document.getElementById('misura-player-title').textContent =\
+        'Protocollo della Misura — ' + nomiPasso[misura.passo];\
+\
+      var descrizioneInput = document.getElementById('misura-descrizione-input');\
+      document.getElementById('misura-descrizione-wrap').style.display = 'block';\
+      if (misura.descrizione && document.activeElement !== descrizioneInput) {\
+        descrizioneInput.value = misura.descrizione;\
+        document.getElementById('misura-descrizione-conferma').style.display = 'block';\
+      } else if (!misura.descrizione) {\
+        document.getElementById('misura-descrizione-conferma').style.display = 'none';\
+      }\
+\
+      var tiroWrap = document.getElementById('misura-tiro-wrap');\
+      if (misura.pronto) {\
+        tiroWrap.style.display = 'block';\
+        document.getElementById('misura-player-status').textContent =\
+          'Tiro di ' + misura.competenzaCorrente + ', soglia ' + misura.sogliaCorrente + '.';\
+        document.getElementById('misura-dice-row').innerHTML = '';\
+      } else {\
+        tiroWrap.style.display = 'none';\
+      }\
     } else {\
       pannelloPlayer.style.display = 'none';\
     }\

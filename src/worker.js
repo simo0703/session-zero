@@ -632,6 +632,7 @@ export class GameRoom {
         tiroEffettuato: false,
         risultatoDadi: [],
         successi: 0,
+        descrizione: "",
         discordanzaVoce: null,
         discordanzaTesto: "",
         rivelata: false,
@@ -707,6 +708,7 @@ export class GameRoom {
           misura.tiroEffettuato = false;
           misura.risultatoDadi = [];
           misura.successi = 0;
+          misura.descrizione = "";
           // numDadi e pronto restano: il narratore può rilanciare subito
           // lo stesso tentativo, o cambiare il numero di dadi se preferisce.
         } else {
@@ -718,6 +720,7 @@ export class GameRoom {
           misura.tiroEffettuato = false;
           misura.risultatoDadi = [];
           misura.successi = 0;
+          misura.descrizione = "";
         }
       } else if (misura.passo === "calibrare") {
         if (successi < misura.sogliaCorrente) {
@@ -736,6 +739,7 @@ export class GameRoom {
         misura.tiroEffettuato = false;
         misura.risultatoDadi = [];
         misura.successi = 0;
+        misura.descrizione = "";
       } else if (misura.passo === "leggere") {
         // Il margine decide quale fascia di discordanza esce (§7.2).
         // Anche il tiro peggiore non lascia mai la squadra a mani vuote.
@@ -769,6 +773,21 @@ export class GameRoom {
         misura.rivelata = false;
         misura.pronto = false;
       }
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "descrivi_misura") {
+      // Chi conduce il protocollo descrive come procede in questo passo,
+      // prima che il narratore imposti competenza e dadi — stessa idea
+      // della dichiarazione d'approccio, applicata alla Misura.
+      const misura = this.stato.misura;
+      if (!misura || !misura.attivo || misura.tiroEffettuato) return;
+      if (misura.giocatoreId !== playerId) return;
+
+      misura.descrizione = (msg.testo || "").trim().slice(0, 300);
 
       this.salvaStato();
       this.broadcast();
