@@ -182,6 +182,13 @@ function stileCss() {
   .copy-btn { background: none; border: 1px solid var(--mist-dim); color: var(--mist); padding: 5px 10px; border-radius: 4px; font-family: inherit; font-size: 12px; cursor: pointer; }\
   .copy-btn:hover { border-color: var(--brass); color: var(--brass-bright); }\
   .status-line { text-align: center; font-size: 12px; color: var(--mist-dim); margin-bottom: 14px; }\
+  .scheda-personaggio { background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 12px 16px; margin-bottom: 14px; }\
+  .scheda-personaggio summary { cursor: pointer; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 14px; color: var(--brass-bright); }\
+  .scheda-corpo { margin-top: 10px; }\
+  .scheda-corpo p { font-size: 13px; margin: 6px 0; line-height: 1.5; }\
+  .dichiarazione-riga { font-size: 13px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }\
+  .dichiarazione-riga:last-child { border-bottom: none; }\
+  .dichiarazione-riga strong { color: var(--brass-bright); }\
   .table-wrap { background: var(--walnut-dark); border-radius: 20px; padding: 40px 24px 32px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px rgba(0,0,0,0.35); margin-bottom: 18px; }\
   .table { position: relative; width: 100%; max-width: 460px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle at 42% 38%, rgba(255,255,255,0.05), transparent 55%), radial-gradient(circle, var(--felt) 0%, var(--felt-dark) 100%); box-shadow: inset 0 0 0 8px var(--walnut), inset 0 0 40px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.4); }\
   .seat { position: absolute; width: 74px; height: 74px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transform: translate(-50%, -50%); }\
@@ -270,6 +277,18 @@ function markupPagina() {
       </div>\
     </div>\
     <p class=\"status-line\" id=\"status-line\">Connessione in corso…</p>\
+  </div>\
+\
+  <div class=\"stage\" id=\"mia-scheda-wrap\" style=\"display:none;\">\
+    <details class=\"scheda-personaggio\">\
+      <summary>La mia scheda</summary>\
+      <div class=\"scheda-corpo\">\
+        <p><span class=\"roster-tag\">Mestiere</span> <span id=\"scheda-mestiere\"></span></p>\
+        <p><span class=\"roster-tag\">Competenze</span> <span id=\"scheda-competenze\"></span></p>\
+        <p id=\"scheda-difetto-riga\"><span class=\"roster-tag\">Difetto</span> <span id=\"scheda-difetto\"></span></p>\
+        <p id=\"scheda-ragione-riga\"><span class=\"roster-tag\">Ragione</span> <span id=\"scheda-ragione\"></span></p>\
+      </div>\
+    </details>\
   </div>\
 \
   <div class=\"stage\" id=\"lobby-screen\">\
@@ -363,6 +382,10 @@ function markupPagina() {
     </div>\
     <div class=\"panel\" id=\"richiedi-tiro-panel\" style=\"display:none;\">\
       <p class=\"panel-title\">Richiedi un tiro</p>\
+      <div id=\"dichiarazioni-elenco\" style=\"display:none; margin-bottom:14px;\">\
+        <p style=\"font-size:12px;color:var(--mist);margin:0 0 6px;text-transform:uppercase;letter-spacing:0.05em;\">Approcci dichiarati</p>\
+        <div id=\"dichiarazioni-lista\"></div>\
+      </div>\
       <div class=\"roll-request-row\">\
         <div class=\"field-inline\">\
           <label>Giocatore</label>\
@@ -404,6 +427,13 @@ function markupPagina() {
     <div class=\"scene-card\">\
       <p class=\"scene-eyebrow\" id=\"scene-eyebrow\">Scena</p>\
       <p class=\"scene-text\" id=\"scene-text\"></p>\
+    </div>\
+    <div class=\"panel\" id=\"approccio-panel\" style=\"display:none;\">\
+      <p class=\"panel-title\">Il tuo approccio</p>\
+      <p class=\"roll-status\">Descrivi come affronti l'ostacolo prima che il narratore chieda il tiro.</p>\
+      <textarea class=\"gm-textarea\" id=\"approccio-input\" placeholder=\"Es. Scendo lungo la corda nuova, di giorno, senza fretta…\" style=\"min-height:60px;\"></textarea>\
+      <button class=\"btn-primary\" id=\"dichiara-approccio-btn\">Dichiara approccio</button>\
+      <p class=\"roll-status\" id=\"approccio-conferma\" style=\"display:none;margin-top:8px;\">Approccio dichiarato.</p>\
     </div>\
     <div class=\"panel\" id=\"tiro-panel\" style=\"display:none;\">\
       <p class=\"panel-title\">Tiro richiesto</p>\
@@ -711,6 +741,13 @@ function scriptPagina() {
     document.getElementById('scena-libreria-select').value = '';\
   });\
 \
+  document.getElementById('dichiara-approccio-btn').addEventListener('click', function () {\
+    var testo = document.getElementById('approccio-input').value.trim();\
+    if (!testo) { alert('Scrivi come affronti l\\'ostacolo prima di dichiararlo.'); return; }\
+    socket.send(JSON.stringify({ type: 'dichiara_approccio', testo: testo }));\
+    document.getElementById('approccio-conferma').style.display = 'block';\
+  });\
+\
   document.getElementById('richiedi-tiro-btn').addEventListener('click', function () {\
     var giocatoreId = document.getElementById('tiro-giocatore').value;\
     var competenza = document.getElementById('tiro-competenza').value;\
@@ -753,6 +790,22 @@ function scriptPagina() {
     socket.send(JSON.stringify({ type: 'spendi_margine', scelta: 'orologio' }));\
   });\
 \
+  function aggiornaMiaScheda(p) {\
+    var mestiereInfo = null;\
+    (configAttuale.mestieri || []).forEach(function (m) { if (m.id === p.mestiere) mestiereInfo = m; });\
+    document.getElementById('scheda-mestiere').textContent = mestiereInfo ? mestiereInfo.nome : '—';\
+\
+    var competenzeTesto = p.competenze\
+      ? Object.keys(p.competenze).map(function (c) { return c + ' ' + p.competenze[c]; }).join(', ')\
+      : '—';\
+    document.getElementById('scheda-competenze').textContent = competenzeTesto;\
+\
+    document.getElementById('scheda-difetto-riga').style.display = p.difetto ? 'block' : 'none';\
+    document.getElementById('scheda-difetto').textContent = p.difetto || '';\
+    document.getElementById('scheda-ragione-riga').style.display = p.ragione ? 'block' : 'none';\
+    document.getElementById('scheda-ragione').textContent = p.ragione || '';\
+  }\
+\
   function aggiornaSchermata(stato) {\
     var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
     var sonoIlGM = stato.gmId === mioId;\
@@ -764,6 +817,16 @@ function scriptPagina() {
     }\
 \
     document.getElementById('gm-panel-wrap').style.display = sonoIlGM ? 'block' : 'none';\
+\
+    var mioPersonaggio = stato.players.find(function (p) { return p.id === mioId; });\
+    var pannelloScheda = document.getElementById('mia-scheda-wrap');\
+    if (sonoSeduto && !sonoIlGM && mioPersonaggio) {\
+      pannelloScheda.style.display = 'block';\
+      aggiornaMiaScheda(mioPersonaggio);\
+    } else {\
+      pannelloScheda.style.display = 'none';\
+    }\
+\
     var giaChiestaEmail = localStorage.getItem('sz_newsletter_prompted');\
     document.getElementById('email-panel-wrap').style.display =\
       (sonoIlGM && !giaChiestaEmail) ? 'block' : 'none';\
@@ -839,6 +902,20 @@ function scriptPagina() {
     document.getElementById('scene-text').textContent = stato.scenaCorrente.testo || '';\
 \
     var sonoIlGM = stato.gmId === mioId;\
+    var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
+    var pannelloApproccio = document.getElementById('approccio-panel');\
+    if (sonoSeduto && !sonoIlGM) {\
+      pannelloApproccio.style.display = 'block';\
+      var mieDichiarazioni = stato.scenaCorrente.dichiarazioni || {};\
+      var miaDichiarazione = mieDichiarazioni[mioId];\
+      if (miaDichiarazione && document.activeElement !== document.getElementById('approccio-input')) {\
+        document.getElementById('approccio-input').value = miaDichiarazione.testo;\
+        document.getElementById('approccio-conferma').style.display = 'block';\
+      }\
+    } else {\
+      pannelloApproccio.style.display = 'none';\
+    }\
+\
     var pannelloTiroGM = document.getElementById('richiedi-tiro-panel');\
     if (sonoIlGM) {\
       pannelloTiroGM.style.display = 'block';\
@@ -852,6 +929,24 @@ function scriptPagina() {
         select.appendChild(opt);\
       });\
       if (selezionePrecedente) select.value = selezionePrecedente;\
+\
+      var dichiarazioniWrap = document.getElementById('dichiarazioni-elenco');\
+      var dichiarazioniLista = document.getElementById('dichiarazioni-lista');\
+      var dichiarazioni = stato.scenaCorrente.dichiarazioni || {};\
+      var idDichiaranti = Object.keys(dichiarazioni);\
+      if (idDichiaranti.length > 0) {\
+        dichiarazioniWrap.style.display = 'block';\
+        dichiarazioniLista.innerHTML = '';\
+        idDichiaranti.forEach(function (id) {\
+          var voce = dichiarazioni[id];\
+          var riga = document.createElement('div');\
+          riga.className = 'dichiarazione-riga';\
+          riga.innerHTML = '<strong>' + voce.nickname + '</strong>: ' + voce.testo;\
+          dichiarazioniLista.appendChild(riga);\
+        });\
+      } else {\
+        dichiarazioniWrap.style.display = 'none';\
+      }\
 \
       var pannelloDiramazione = document.getElementById('diramazione-suggerita');\
       if (stato.ultimoSuggerimento && stato.ultimoSuggerimento.testo) {\

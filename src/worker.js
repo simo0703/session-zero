@@ -277,6 +277,7 @@ export class GameRoom {
         id: this.stato.log.sceneAperte + 1,
         testo,
         libreriaId,
+        dichiarazioni: {},
         tiroRichiesto: false,
         giocatoreCoinvolto: null,
         competenzaRichiesta: "",
@@ -312,6 +313,25 @@ export class GameRoom {
           );
         }
       }
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "dichiara_approccio") {
+      // Chiunque sia seduto come giocatore può dichiarare il proprio
+      // approccio prima che il narratore imposti soglia e dadi (P1).
+      const giocatore = this.stato.players.find(
+        (p) => p.id === playerId && p.role === "player"
+      );
+      if (!giocatore || this.stato.status !== "playing") return;
+
+      const testo = (msg.testo || "").trim().slice(0, 300);
+      this.stato.scenaCorrente.dichiarazioni[playerId] = {
+        nickname: giocatore.nickname,
+        testo,
+      };
 
       this.salvaStato();
       this.broadcast();

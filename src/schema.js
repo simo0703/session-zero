@@ -55,6 +55,11 @@ function creaStatoIniziale(roomCode, gameId) {
       id: null,
       testo: "",
       libreriaId: "", // id "scenario:atto:scena" se caricata dalla libreria, altrimenti vuoto
+      // Dichiarazioni d'approccio (Design Bible §4, principio P1: "prima la
+      // scena, poi il tiro"): il giocatore descrive come affronta l'ostacolo
+      // prima che il narratore imposti soglia e dadi. Chiave = id giocatore.
+      // Si azzera a ogni nuova scena, resta per tutti i tiri della stessa.
+      dichiarazioni: {},
       tiroRichiesto: false,
       giocatoreCoinvolto: null,
       competenzaRichiesta: "",
