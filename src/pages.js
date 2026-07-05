@@ -15,7 +15,7 @@ export function paginaAdmin(gameIds) {
     "<meta charset=\"UTF-8\">" +
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
     "<title>Session Zero — Area riservata</title>" +
-    "<script src=\"https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js\"></script>" +
+    "<script src=\"https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js\"></script>" +
     "<style>" + stileAdmin() + "</style>" +
     "</head>" +
     "<body>" +
@@ -49,7 +49,7 @@ function stileAdmin() {
   button:disabled { opacity: 0.6; cursor: default; }\
   #risultato { display: none; margin-top: 26px; padding-top: 22px; border-top: 1px solid rgba(255,255,255,0.1); text-align: center; }\
   #codice-generato { font-family: 'JetBrains Mono', monospace; font-size: 22px; letter-spacing: 0.1em; color: var(--brass-bright); margin: 0 0 14px; }\
-  #qr-canvas { margin: 0 auto 14px; display: block; border-radius: 8px; }\
+  #qr-container { margin: 0 auto 14px; display: flex; justify-content: center; }\
   #link-generato { font-family: 'JetBrains Mono', monospace; font-size: 11px; color: var(--mist); word-break: break-all; margin-bottom: 12px; }\
   .secondary-btn { background: none; border: 1px solid var(--mist-dim); color: var(--mist); padding: 8px 14px; border-radius: 6px; font-size: 12px; width: auto; }\
   .secondary-btn:hover { border-color: var(--brass); color: var(--brass-bright); background: none; }\
@@ -77,7 +77,7 @@ function markupAdmin(opzioniGioco) {
     </form>\
     <div id=\"risultato\">\
       <p id=\"codice-generato\"></p>\
-      <canvas id=\"qr-canvas\"></canvas>\
+      <div id=\"qr-container\"></div>\
       <p id=\"link-generato\"></p>\
       <button type=\"button\" class=\"secondary-btn\" id=\"copia-link-btn\">Copia link</button>\
     </div>\
@@ -89,7 +89,7 @@ function scriptAdmin() {
   return "\
   var form = document.getElementById('admin-form');\
   var risultatoBox = document.getElementById('risultato');\
-  var qrCanvas = document.getElementById('qr-canvas');\
+  var qrContainer = document.getElementById('qr-container');\
 \
   form.addEventListener('submit', function (e) {\
     e.preventDefault();\
@@ -115,8 +115,13 @@ function scriptAdmin() {
         document.getElementById('codice-generato').textContent = data.code;\
         document.getElementById('link-generato').textContent = data.url;\
         risultatoBox.style.display = 'block';\
-        QRCode.toCanvas(qrCanvas, data.url, { width: 220, margin: 1 }, function (err) {\
-          if (err) console.error(err);\
+        qrContainer.innerHTML = '';\
+        new QRCode(qrContainer, {\
+          text: data.url,\
+          width: 220,\
+          height: 220,\
+          colorDark: '#1C120C',\
+          colorLight: '#F3EEE2'\
         });\
       })\
       .catch(function (err) {\
