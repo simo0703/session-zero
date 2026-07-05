@@ -245,8 +245,6 @@ function scriptPagina() {
 \
   function aggiornaSchermata(stato) {\
     var sonoIlGM = stato.gmId === mioId;\
-\
-    // Pannello del Censore: sempre visibile a chi ha quel ruolo, in ogni fase\
     document.getElementById('gm-panel-wrap').style.display = sonoIlGM ? 'block' : 'none';\
     if (sonoIlGM) {\
       document.getElementById('gm-panel-title').textContent =\
