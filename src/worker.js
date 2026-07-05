@@ -536,6 +536,49 @@ export class GameRoom {
       return;
     }
 
+    if (msg.type === "invia_chat") {
+      const mittente = this.stato.players.find((p) => p.id === playerId);
+      if (!mittente) return;
+
+      const testo = (msg.testo || "").trim().slice(0, 500);
+      if (!testo) return;
+
+      this.stato.chat.push({
+        id: playerId + "_" + Date.now(),
+        nickname: mittente.nickname,
+        simbolo: mittente.simbolo || "",
+        ruolo: mittente.role,
+        testo,
+        quando: Date.now(),
+      });
+      // Non lasciamo crescere lo stato all'infinito in sessioni lunghe.
+      if (this.stato.chat.length > 200) {
+        this.stato.chat = this.stato.chat.slice(-200);
+      }
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "imposta_link_chiamata") {
+      // Chiunque sia seduto (giocatore o narratore) può condividere o
+      // rimuovere il link della chiamata. Nessuna chiamata è gestita da
+      // Session Zero: solo il link, validato in modo minimo.
+      const giaSeduto = this.stato.players.some((p) => p.id === playerId);
+      if (!giaSeduto) return;
+
+      const url = (msg.url || "").trim().slice(0, 300);
+      if (url && url.indexOf("http://") !== 0 && url.indexOf("https://") !== 0) {
+        return;
+      }
+      this.stato.linkChiamata = url;
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
     if (msg.type === "nascondi_suggerimento") {
       // Solo il narratore può chiudere il proprio suggerimento.
       if (playerId !== this.stato.gmId) return;

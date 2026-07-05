@@ -150,7 +150,6 @@ export function paginaLobby() {
     "<title>Session Zero — Lobby</title>" +
     "<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">" +
     "<link href=\"https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..800&family=Source+Sans+3:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap\" rel=\"stylesheet\">" +
-    "<script src=\"https://meet.jit.si/external_api.js\"></script>" +
     "<style>" + stileCss() + "</style>" +
     "</head>" +
     "<body>" +
@@ -187,6 +186,8 @@ function stileCss() {
   .scheda-personaggio summary { cursor: pointer; font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 14px; color: var(--brass-bright); }\
   .scheda-corpo { margin-top: 10px; }\
   .scheda-corpo p { font-size: 13px; margin: 6px 0; line-height: 1.5; }\
+  .chat-messaggio { font-size: 13px; padding: 4px 0; line-height: 1.4; }\
+  .chat-messaggio .mittente { color: var(--brass-bright); font-weight: 600; margin-right: 6px; }\
   .dichiarazione-riga { font-size: 13px; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.06); }\
   .dichiarazione-riga:last-child { border-bottom: none; }\
   .dichiarazione-riga strong { color: var(--brass-bright); }\
@@ -282,12 +283,32 @@ function markupPagina() {
 \
   <div class=\"stage\" id=\"chiamata-wrap\">\
     <div class=\"join-panel\" style=\"padding:16px 20px; margin-bottom:14px;\">\
-      <div style=\"display:flex; justify-content:space-between; align-items:center;\">\
-        <p class=\"join-title\" style=\"margin:0;\">Chiamata vocale</p>\
-        <button type=\"button\" class=\"copy-btn\" id=\"chiamata-toggle-btn\">Attiva</button>\
+      <p class=\"join-title\" style=\"margin:0 0 10px;\">Chiamata vocale</p>\
+      <div id=\"chiamata-form\">\
+        <p style=\"font-size:12px;color:var(--mist);margin:0 0 10px;line-height:1.5;\">Crea una chiamata su Discord, Google Meet, Zoom o quello che preferite, poi incolla qui il link — comparirà per tutti.</p>\
+        <div class=\"field\">\
+          <input type=\"text\" id=\"chiamata-link-input\" placeholder=\"https://...\">\
+        </div>\
+        <button type=\"button\" class=\"copy-btn\" id=\"chiamata-condividi-btn\">Condividi link</button>\
       </div>\
-      <div id=\"jitsi-container\" style=\"display:none; margin-top:14px; border-radius:8px; overflow:hidden; height:400px;\"></div>\
+      <div id=\"chiamata-attiva\" style=\"display:none;\">\
+        <a href=\"#\" id=\"chiamata-apri-link\" target=\"_blank\" rel=\"noopener\" class=\"sit-btn\" style=\"display:block; text-align:center; text-decoration:none; box-sizing:border-box;\">Apri chiamata</a>\
+        <button type=\"button\" class=\"copy-btn\" id=\"chiamata-cambia-btn\" style=\"margin-top:8px;\">Cambia link</button>\
+      </div>\
     </div>\
+  </div>\
+\
+  <div class=\"stage\" id=\"chat-wrap\" style=\"display:none;\">\
+    <details class=\"scheda-personaggio\" open>\
+      <summary>Chat di gruppo</summary>\
+      <div class=\"scheda-corpo\">\
+        <div id=\"chat-lista\" style=\"max-height:220px; overflow-y:auto; margin-bottom:10px;\"></div>\
+        <div style=\"display:flex; gap:8px;\">\
+          <input type=\"text\" id=\"chat-input\" placeholder=\"Scrivi un messaggio…\" style=\"flex:1;\">\
+          <button type=\"button\" class=\"copy-btn\" id=\"chat-invia-btn\">Invia</button>\
+        </div>\
+      </div>\
+    </details>\
   </div>\
 \
   <div class=\"stage\" id=\"mia-scheda-wrap\" style=\"display:none;\">\
@@ -518,43 +539,34 @@ function scriptPagina() {
     setTimeout(function () { self.textContent = 'Copia link'; }, 1500);\
   });\
 \
-  var jitsiApi = null;\
-  document.getElementById('chiamata-toggle-btn').addEventListener('click', function () {\
-    var container = document.getElementById('jitsi-container');\
-    var btn = this;\
-    if (jitsiApi) {\
-      jitsiApi.dispose();\
-      jitsiApi = null;\
-      container.style.display = 'none';\
-      container.innerHTML = '';\
-      btn.textContent = 'Attiva';\
+  document.getElementById('chiamata-condividi-btn').addEventListener('click', function () {\
+    var url = document.getElementById('chiamata-link-input').value.trim();\
+    if (!url) { alert('Incolla prima il link della chiamata.'); return; }\
+    if (url.indexOf('http://') !== 0 && url.indexOf('https://') !== 0) {\
+      alert('Il link deve iniziare con http:// o https://');\
       return;\
     }\
-    if (typeof JitsiMeetExternalAPI === 'undefined') {\
-      alert('La chiamata non si è caricata correttamente. Ricarica la pagina e riprova.');\
-      return;\
+    socket.send(JSON.stringify({ type: 'imposta_link_chiamata', url: url }));\
+  });\
+\
+  document.getElementById('chiamata-cambia-btn').addEventListener('click', function () {\
+    socket.send(JSON.stringify({ type: 'imposta_link_chiamata', url: '' }));\
+    document.getElementById('chiamata-link-input').value = '';\
+  });\
+\
+  function inviaMessaggioChat() {\
+    var input = document.getElementById('chat-input');\
+    var testo = input.value.trim();\
+    if (!testo) return;\
+    socket.send(JSON.stringify({ type: 'invia_chat', testo: testo }));\
+    input.value = '';\
+  }\
+  document.getElementById('chat-invia-btn').addEventListener('click', inviaMessaggioChat);\
+  document.getElementById('chat-input').addEventListener('keydown', function (e) {\
+    if (e.key === 'Enter') {\
+      e.preventDefault();\
+      inviaMessaggioChat();\
     }\
-    container.style.display = 'block';\
-    var nomeDaMostrare = nicknameScelto || document.getElementById('nickname').value.trim() || 'Ospite';\
-    jitsiApi = new JitsiMeetExternalAPI('meet.jit.si', {\
-      roomName: 'session-zero-stanza-' + roomCode,\
-      parentNode: container,\
-      width: '100%',\
-      height: 400,\
-      configOverwrite: { startWithVideoMuted: true, prejoinPageEnabled: false },\
-      userInfo: { displayName: nomeDaMostrare }\
-    });\
-\
-    jitsiApi.addEventListener('participantRoleChanged', function (evento) {\
-      if (evento.role === 'moderator') {\
-        jitsiApi.executeCommand('toggleLobby', false);\
-      }\
-    });\
-    jitsiApi.addEventListener('lobbyScreenUserJoined', function (dati) {\
-      jitsiApi.executeCommand('approveParticipant', dati.id);\
-    });\
-\
-    btn.textContent = 'Disattiva';\
   });\
 \
   var SIMBOLI = ['🧭', '🪢', '🔑', '🪶', '⏳', '🗺️', '🎲', '🔦'];\
@@ -587,7 +599,6 @@ function scriptPagina() {
   var mioId = null;\
   var configAttuale = null;\
   var mestiereSelezionato = '';\
-  var nicknameScelto = '';\
   var valoreExtra1 = 2;\
   var valoreExtra2 = 1;\
 \
@@ -761,7 +772,6 @@ function scriptPagina() {
     var codice = document.getElementById('codice-input').value.trim();\
     if (!nickname) { alert('Scrivi un nome prima di sederti.'); return; }\
     if (vuoleGM && !codice) { alert('Inserisci il codice stampato nel libro per guidare la partita.'); return; }\
-    nicknameScelto = nickname;\
 \
     var payload = { type: 'siediti', nickname: nickname, vuoleGM: vuoleGM, codice: codice, simbolo: simboloSelezionato };\
 \
@@ -858,9 +868,36 @@ function scriptPagina() {
     document.getElementById('scheda-ragione').textContent = p.ragione || '';\
   }\
 \
+  function renderizzaChat(messaggi) {\
+    var lista = document.getElementById('chat-lista');\
+    lista.innerHTML = '';\
+    messaggi.forEach(function (m) {\
+      var riga = document.createElement('div');\
+      riga.className = 'chat-messaggio';\
+      var etichetta = (m.simbolo ? m.simbolo + ' ' : '') + m.nickname;\
+      riga.innerHTML = '<span class=\"mittente\">' + etichetta + '</span>' + m.testo;\
+      lista.appendChild(riga);\
+    });\
+    lista.scrollTop = lista.scrollHeight;\
+  }\
+\
   function aggiornaSchermata(stato) {\
     var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
     var sonoIlGM = stato.gmId === mioId;\
+\
+    if (stato.linkChiamata) {\
+      document.getElementById('chiamata-form').style.display = 'none';\
+      document.getElementById('chiamata-attiva').style.display = 'block';\
+      document.getElementById('chiamata-apri-link').href = stato.linkChiamata;\
+    } else {\
+      document.getElementById('chiamata-form').style.display = 'block';\
+      document.getElementById('chiamata-attiva').style.display = 'none';\
+    }\
+\
+    document.getElementById('chat-wrap').style.display = sonoSeduto ? 'block' : 'none';\
+    if (sonoSeduto) {\
+      renderizzaChat(stato.chat || []);\
+    }\
 \
     document.getElementById('join-panel-wrap').style.display = sonoSeduto ? 'none' : 'block';\
     document.getElementById('gm-toggle-wrap').style.display = stato.gmId ? 'none' : 'flex';\

@@ -42,6 +42,18 @@ function creaStatoIniziale(roomCode, gameId) {
     // azzera con l'apertura di una nuova scena, a differenza di scenaCorrente.
     ultimoSuggerimento: null, // { testo, daScena } oppure null
 
+    // Link a una chiamata vocale/video esterna (Discord, Meet, Zoom...),
+    // condiviso da chi vuole avviarla. Session Zero non ospita né apre
+    // nessuna chiamata: fa solo da bacheca per il link, così nessuno deve
+    // registrarsi da nessuna parte per usarla.
+    linkChiamata: "",
+
+    // Chat di gruppo testuale: nome e simbolo del mittente sono quelli veri
+    // della scheda, quindi risolve anche il problema di riconoscersi senza
+    // bisogno di rinominarsi altrove. Tenuta corta (ultimi 200 messaggi)
+    // per non far crescere lo stato all'infinito in sessioni lunghe.
+    chat: [],
+
     // L'Orologio dell'atto — avanza ogni due scene (regola fissata nel Design Bible cartaceo)
     orologio: {
       valore: 0,
