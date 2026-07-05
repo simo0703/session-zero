@@ -473,6 +473,27 @@ export class GameRoom {
         }
       }
 
+      // Se questo tiro era su una scena caricata dalla libreria e ha
+      // diramazioni scritte, prepariamo il suggerimento per la scena
+      // successiva — salvato a livello di stanza, non di scena, così
+      // resta visibile al narratore anche dopo aver aperto quella dopo.
+      if (scena.libreriaId) {
+        const sceneLibreria = trovaScenaLibreria(config, scena.libreriaId);
+        if (sceneLibreria && sceneLibreria.diramazioni) {
+          const chiaveEsito =
+            scena.esito === "costo" && !sceneLibreria.diramazioni.costo
+              ? "fallimento"
+              : scena.esito;
+          const testoSuggerito = sceneLibreria.diramazioni[chiaveEsito];
+          if (testoSuggerito) {
+            this.stato.ultimoSuggerimento = {
+              testo: testoSuggerito,
+              daScena: scena.id,
+            };
+          }
+        }
+      }
+
       this.salvaStato();
       this.broadcast();
       return;
@@ -492,6 +513,15 @@ export class GameRoom {
       } catch (e) {
         console.error("Errore salvataggio email:", e);
       }
+      return;
+    }
+
+    if (msg.type === "nascondi_suggerimento") {
+      // Solo il narratore può chiudere il proprio suggerimento.
+      if (playerId !== this.stato.gmId) return;
+      this.stato.ultimoSuggerimento = null;
+      this.salvaStato();
+      this.broadcast();
       return;
     }
 
@@ -580,6 +610,18 @@ function costruisciSchedaPersonaggio(msg, config) {
     difetto: (msg.difetto || "").trim().slice(0, 140),
     ragione: (msg.ragione || "").trim().slice(0, 140),
   };
+}
+
+// Cerca una scena nella libreria dato il suo id "scenario:atto:scena",
+// usata per calcolare il suggerimento di diramazione dopo un tiro.
+function trovaScenaLibreria(config, idCompleto) {
+  if (!idCompleto || !config.scenari) return null;
+  const pezzi = idCompleto.split(":");
+  const scenario = config.scenari[pezzi[0]];
+  if (!scenario) return null;
+  const atto = scenario.atti.find((a) => String(a.numero) === pezzi[1]);
+  if (!atto) return null;
+  return atto.scene.find((s) => s.id === pezzi[2]) || null;
 }
 
 function generaCodiceCasuale(lunghezza) {

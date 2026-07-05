@@ -356,6 +356,7 @@ function markupPagina() {
         <p style=\"font-size:12px;color:var(--mist);margin:0 0 8px;text-transform:uppercase;letter-spacing:0.05em;\">Sviluppo suggerito dal tiro precedente</p>\
         <p id=\"diramazione-testo\" style=\"font-size:13px;line-height:1.5;margin:0 0 10px;\"></p>\
         <button type=\"button\" class=\"copy-btn\" id=\"usa-diramazione-btn\">Usa questo testo</button>\
+        <button type=\"button\" class=\"copy-btn\" id=\"nascondi-diramazione-btn\" style=\"margin-left:8px;\">Nascondi</button>\
       </div>\
       <textarea class=\"gm-textarea\" id=\"scene-input\" placeholder=\"Scrivi qui il testo della scena…\"></textarea>\
       <button class=\"btn-primary\" id=\"apri-scena-btn\">Apri scena</button>\
@@ -853,22 +854,15 @@ function scriptPagina() {
       if (selezionePrecedente) select.value = selezionePrecedente;\
 \
       var pannelloDiramazione = document.getElementById('diramazione-suggerita');\
-      var scenaAttuale = stato.scenaCorrente;\
-      var testoSuggerito = '';\
-      if (scenaAttuale.libreriaId && scenaAttuale.tiroRichiesto && scenaAttuale.tiroEffettuato) {\
-        var sceneLibreria = trovaScenaLibreria(scenaAttuale.libreriaId);\
-        if (sceneLibreria && sceneLibreria.diramazioni) {\
-          var chiaveEsito = scenaAttuale.esito === 'costo' && !sceneLibreria.diramazioni.costo\
-            ? 'fallimento'\
-            : scenaAttuale.esito;\
-          testoSuggerito = sceneLibreria.diramazioni[chiaveEsito] || '';\
-        }\
-      }\
-      if (testoSuggerito) {\
+      if (stato.ultimoSuggerimento && stato.ultimoSuggerimento.testo) {\
+        var testoSuggerito = stato.ultimoSuggerimento.testo;\
         pannelloDiramazione.style.display = 'block';\
         document.getElementById('diramazione-testo').textContent = testoSuggerito;\
         document.getElementById('usa-diramazione-btn').onclick = function () {\
           document.getElementById('scene-input').value = testoSuggerito;\
+        };\
+        document.getElementById('nascondi-diramazione-btn').onclick = function () {\
+          socket.send(JSON.stringify({ type: 'nascondi_suggerimento' }));\
         };\
       } else {\
         pannelloDiramazione.style.display = 'none';\

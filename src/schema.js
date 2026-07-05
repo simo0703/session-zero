@@ -36,6 +36,12 @@ function creaStatoIniziale(roomCode, gameId) {
 
     gmId: null, // id del player che guida la partita (narratore / Censore, secondo il gioco)
 
+    // L'ultimo suggerimento di diramazione mostrato al narratore (Design
+    // Bible §9), persistente finché non arriva un tiro successivo su una
+    // scena di libreria o il narratore lo chiude manualmente — non si
+    // azzera con l'apertura di una nuova scena, a differenza di scenaCorrente.
+    ultimoSuggerimento: null, // { testo, daScena } oppure null
+
     // L'Orologio dell'atto — avanza ogni due scene (regola fissata nel Design Bible cartaceo)
     orologio: {
       valore: 0,
