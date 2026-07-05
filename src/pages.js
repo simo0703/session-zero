@@ -175,8 +175,8 @@ function stileCss() {
   }\
   .stage { width: 100%; max-width: 760px; margin: 0 auto; }\
   .layout-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; max-width: 1100px; margin: 0 auto; align-items: start; }\
-  .layout-main { min-width: 0; }\
-  .layout-sidebar { min-width: 0; }\
+  .layout-main { min-width: 0; order: 1; }\
+  .layout-sidebar { min-width: 0; order: 2; }\
   .layout-main .stage, .layout-sidebar .stage { max-width: none; margin: 0 0 18px; }\
   @media (max-width: 860px) {\
     .layout-grid { grid-template-columns: 1fr; }\
