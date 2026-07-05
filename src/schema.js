@@ -48,6 +48,7 @@ function creaStatoIniziale(roomCode, gameId) {
     scenaCorrente: {
       id: null,
       testo: "",
+      libreriaId: "", // id "scenario:atto:scena" se caricata dalla libreria, altrimenti vuoto
       tiroRichiesto: false,
       giocatoreCoinvolto: null,
       competenzaRichiesta: "",
@@ -184,7 +185,84 @@ const gameConfigs = {
         ]
       }
     },
-    orologioSoglia: 8
+    orologioSoglia: 8,
+    // Libreria di scene pronte dal Design Bible cartaceo (v1.3), scenario
+    // Petra. Ogni scena ha un id univoco "scenario:atto:scena" usato dal
+    // narratore per richiamarla in lobby; il testo resta comunque
+    // modificabile prima di aprire la scena. "diramazioni" è il testo
+    // suggerito da usare per la scena successiva secondo l'esito del tiro
+    // precedente — assente dove il Design Bible non richiede un tiro.
+    scenari: {
+      petra: {
+        nome: "Petra",
+        atti: [
+          {
+            numero: 1,
+            titolo: "La vallata",
+            chiusura:
+              "Il tempo del mondo avanza secondo la regola fissa (una casella ogni due scene, conteggio continuo): a fine Atto 1 (3 scene) l'Orologio è tipicamente a 1 casella su 8, più eventuali penalità da 1.2/1.3.",
+            png: [
+              {
+                nome: "Il pastore",
+                descrizione:
+                  "Non ha nome nel testo base, il narratore ne dà uno al tavolo. Non è ostile, non è alleato: vende quello che ha, tace quello che vale."
+              },
+              {
+                nome: "L'altra squadra",
+                descrizione:
+                  "Non compare mai di persona in questo atto, solo tracce. Il narratore la gioca come uno specchio: stessi Mestieri, stesso contratto con \"qualcun altro\"."
+              }
+            ],
+            scene: [
+              {
+                id: "apertura",
+                titolo: "Apertura",
+                testo:
+                  "La squadra scende dal fuoristrada dopo otto ore di pista. Il Centro ha dato coordinate, non indicazioni. Il campo si monta prima del buio, sempre, senza eccezioni — è la prima regola che la Guida ripete, e la ripete a chi non l'ha ancora sentita.",
+                tiro: null,
+                diramazioni: null
+              },
+              {
+                id: "1.1",
+                titolo: "Il campo",
+                testo:
+                  "Introduzione dei personaggi in azione, non in descrizione: ognuno fa la cosa del proprio Mestiere mentre il campo si monta. Nessun tiro necessario — è la scena in cui il tavolo impara chi è chi guardando le mani, non ascoltando le schede.\n\nSegno da innescare gratis, senza tiro: una traccia di pneumatici, fresca, che il campo non ha lasciato. Qualcuno è già stato qui, o c'è ancora.",
+                tiro: null,
+                diramazioni: null
+              },
+              {
+                id: "1.2",
+                titolo: "L'acqua",
+                testo:
+                  "La Guida tratta con l'unico pastore della valle per l'accesso al pozzo.",
+                tiro: { competenze: ["Trattativa", "Lingue"], soglia: 1 },
+                diramazioni: {
+                  pieno:
+                    "L'acqua è garantita, e il pastore lascia cadere un dettaglio utile — ha visto un'altra squadra, tre giorni fa, verso nord.",
+                  costo:
+                    "L'acqua è garantita, ma il pastore vuole qualcosa in cambio che tocca l'Equipaggiamento (una tanica, una torcia) — 1 casella.",
+                  fallimento:
+                    "Il pastore si chiude, non parla più. L'informazione sull'altra squadra arriverà solo più tardi, e più tardi vuol dire peggio (Orologio +1)."
+                }
+              },
+              {
+                id: "1.3",
+                titolo: "Le tracce fresche",
+                testo:
+                  "La squadra trova il campo abbandonato dell'altra squadra: cenere ancora tiepida, un solo oggetto lasciato indietro — a scelta del narratore, qualcosa che dice cosa cercavano senza dirlo del tutto (una batteria scarica di un modello raro, una nota illeggibile in un'altra lingua).",
+                tiro: { competenze: ["Terreno"], soglia: 1 },
+                diramazioni: {
+                  pieno:
+                    "Legge le tracce con chiarezza: sa quando l'altra squadra è partita e in che direzione.",
+                  fallimento:
+                    "Parte comunque, ma un giorno indietro rispetto a chi ha letto bene le tracce — l'informazione si traduce direttamente in Orologio +1 se il gruppo sceglie la via sbagliata all'Atto 2."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    }
   },
   "ledger-game": {
     nome: "The Ledger Game",

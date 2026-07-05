@@ -346,6 +346,17 @@ function markupPagina() {
   <div class=\"stage\" id=\"gm-panel-wrap\" style=\"display:none;\">\
     <div class=\"panel\" id=\"gm-controls\">\
       <p class=\"panel-title\" id=\"gm-panel-title\">Apri la prima scena</p>\
+      <div class=\"field-inline\" style=\"margin-bottom:12px;\">\
+        <label>Scena pronta (facoltativo)</label>\
+        <select id=\"scena-libreria-select\">\
+          <option value=\"\">— scrivi liberamente —</option>\
+        </select>\
+      </div>\
+      <div id=\"diramazione-suggerita\" style=\"display:none; background:rgba(192,138,62,0.1); border:1px solid rgba(192,138,62,0.3); border-radius:8px; padding:12px 14px; margin-bottom:12px;\">\
+        <p style=\"font-size:12px;color:var(--mist);margin:0 0 8px;text-transform:uppercase;letter-spacing:0.05em;\">Sviluppo suggerito dal tiro precedente</p>\
+        <p id=\"diramazione-testo\" style=\"font-size:13px;line-height:1.5;margin:0 0 10px;\"></p>\
+        <button type=\"button\" class=\"copy-btn\" id=\"usa-diramazione-btn\">Usa questo testo</button>\
+      </div>\
       <textarea class=\"gm-textarea\" id=\"scene-input\" placeholder=\"Scrivi qui il testo della scena…\"></textarea>\
       <button class=\"btn-primary\" id=\"apri-scena-btn\">Apri scena</button>\
     </div>\
@@ -521,6 +532,23 @@ function scriptPagina() {
     }\
   });\
 \
+  function trovaScenaLibreria(idCompleto) {\
+    if (!idCompleto || !configAttuale || !configAttuale.scenari) return null;\
+    var pezzi = idCompleto.split(':');\
+    var scenario = configAttuale.scenari[pezzi[0]];\
+    if (!scenario) return null;\
+    var attoTrovato = null;\
+    scenario.atti.forEach(function (atto) {\
+      if (String(atto.numero) === pezzi[1]) attoTrovato = atto;\
+    });\
+    if (!attoTrovato) return null;\
+    var sceneTrovata = null;\
+    attoTrovato.scene.forEach(function (scena) {\
+      if (scena.id === pezzi[2]) sceneTrovata = scena;\
+    });\
+    return sceneTrovata;\
+  }\
+\
   function inizializzaConConfig() {\
     var mestieriConfig = configAttuale.mestieri || [];\
 \
@@ -580,6 +608,28 @@ function scriptPagina() {
       valoreExtra2 = tmp;\
       document.getElementById('dadi-extra-1').textContent = valoreExtra1 + (valoreExtra1 === 1 ? ' dado' : ' dadi');\
       document.getElementById('dadi-extra-2').textContent = valoreExtra2 + (valoreExtra2 === 1 ? ' dado' : ' dadi');\
+    });\
+\
+    var selScena = document.getElementById('scena-libreria-select');\
+    var scenari = configAttuale.scenari || {};\
+    Object.keys(scenari).forEach(function (idScenario) {\
+      var scenario = scenari[idScenario];\
+      scenario.atti.forEach(function (atto) {\
+        atto.scene.forEach(function (scena) {\
+          var opt = document.createElement('option');\
+          opt.value = idScenario + ':' + atto.numero + ':' + scena.id;\
+          opt.textContent = scenario.nome + ' — Atto ' + atto.numero + ' — ' + scena.titolo;\
+          selScena.appendChild(opt);\
+        });\
+      });\
+    });\
+\
+    selScena.addEventListener('change', function () {\
+      if (!this.value) return;\
+      var scena = trovaScenaLibreria(this.value);\
+      if (scena) {\
+        document.getElementById('scene-input').value = scena.testo;\
+      }\
     });\
 \
     var selTiroComp = document.getElementById('tiro-competenza');\
@@ -654,8 +704,10 @@ function scriptPagina() {
   document.getElementById('apri-scena-btn').addEventListener('click', function () {\
     var testo = document.getElementById('scene-input').value.trim();\
     if (!testo) { alert('Scrivi il testo della scena prima di aprirla.'); return; }\
-    socket.send(JSON.stringify({ type: 'apri_scena', testo: testo }));\
+    var libreriaId = document.getElementById('scena-libreria-select').value;\
+    socket.send(JSON.stringify({ type: 'apri_scena', testo: testo, libreriaId: libreriaId }));\
     document.getElementById('scene-input').value = '';\
+    document.getElementById('scena-libreria-select').value = '';\
   });\
 \
   document.getElementById('richiedi-tiro-btn').addEventListener('click', function () {\
@@ -799,6 +851,28 @@ function scriptPagina() {
         select.appendChild(opt);\
       });\
       if (selezionePrecedente) select.value = selezionePrecedente;\
+\
+      var pannelloDiramazione = document.getElementById('diramazione-suggerita');\
+      var scenaAttuale = stato.scenaCorrente;\
+      var testoSuggerito = '';\
+      if (scenaAttuale.libreriaId && scenaAttuale.tiroRichiesto && scenaAttuale.tiroEffettuato) {\
+        var sceneLibreria = trovaScenaLibreria(scenaAttuale.libreriaId);\
+        if (sceneLibreria && sceneLibreria.diramazioni) {\
+          var chiaveEsito = scenaAttuale.esito === 'costo' && !sceneLibreria.diramazioni.costo\
+            ? 'fallimento'\
+            : scenaAttuale.esito;\
+          testoSuggerito = sceneLibreria.diramazioni[chiaveEsito] || '';\
+        }\
+      }\
+      if (testoSuggerito) {\
+        pannelloDiramazione.style.display = 'block';\
+        document.getElementById('diramazione-testo').textContent = testoSuggerito;\
+        document.getElementById('usa-diramazione-btn').onclick = function () {\
+          document.getElementById('scene-input').value = testoSuggerito;\
+        };\
+      } else {\
+        pannelloDiramazione.style.display = 'none';\
+      }\
     } else {\
       pannelloTiroGM.style.display = 'none';\
     }\

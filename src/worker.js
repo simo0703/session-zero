@@ -265,10 +265,18 @@ export class GameRoom {
       const testo = (msg.testo || "").slice(0, 4000);
       if (!testo.trim()) return;
 
+      // Se il narratore ha caricato una scena dalla libreria, ne teniamo
+      // traccia (id "scenario:atto:scena") per poter suggerire la
+      // diramazione giusta dopo il tiro. Puramente informativo: se manca
+      // o non è riconosciuto, il testo libero funziona comunque.
+      const libreriaId =
+        typeof msg.libreriaId === "string" ? msg.libreriaId.slice(0, 40) : "";
+
       this.stato.status = "playing";
       this.stato.scenaCorrente = {
         id: this.stato.log.sceneAperte + 1,
         testo,
+        libreriaId,
         tiroRichiesto: false,
         giocatoreCoinvolto: null,
         competenzaRichiesta: "",
