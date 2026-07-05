@@ -544,6 +544,16 @@ function scriptPagina() {
       configOverwrite: { startWithVideoMuted: true, prejoinPageEnabled: false },\
       userInfo: { displayName: nomeDaMostrare }\
     });\
+\
+    jitsiApi.addEventListener('participantRoleChanged', function (evento) {\
+      if (evento.role === 'moderator') {\
+        jitsiApi.executeCommand('toggleLobby', false);\
+      }\
+    });\
+    jitsiApi.addEventListener('lobbyScreenUserJoined', function (dati) {\
+      jitsiApi.executeCommand('approveParticipant', dati.id);\
+    });\
+\
     btn.textContent = 'Disattiva';\
   });\
 \
