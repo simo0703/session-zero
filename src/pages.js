@@ -468,6 +468,43 @@ function markupPagina() {
         <button class=\"btn-primary\" id=\"richiedi-tiro-btn\">Richiedi tiro</button>\
       </div>\
     </div>\
+\
+    <div class=\"panel\" id=\"misura-gm-panel\" style=\"display:none;\">\
+      <p class=\"panel-title\">Protocollo della Misura</p>\
+      <div id=\"misura-avvio\">\
+        <div class=\"roll-request-row\">\
+          <div class=\"field-inline\">\
+            <label>Chi conduce il protocollo</label>\
+            <select id=\"misura-giocatore\"></select>\
+          </div>\
+          <button class=\"btn-primary\" id=\"misura-avvia-btn\">Avvia protocollo</button>\
+        </div>\
+      </div>\
+      <div id=\"misura-in-corso\" style=\"display:none;\">\
+        <p class=\"roll-status\" id=\"misura-stato-testo\"></p>\
+        <div class=\"roll-request-row\" id=\"misura-config-row\">\
+          <div class=\"field-inline\" id=\"misura-competenza-wrap\" style=\"display:none;\">\
+            <label>Competenza</label>\
+            <select id=\"misura-competenza\">\
+              <option value=\"Strumenti\">Strumenti</option>\
+              <option value=\"Terreno\">Terreno</option>\
+            </select>\
+          </div>\
+          <div class=\"field-inline\">\
+            <label>Numero dadi</label>\
+            <input type=\"number\" id=\"misura-numdadi\" value=\"3\" min=\"1\" max=\"6\">\
+          </div>\
+          <button class=\"btn-primary\" id=\"misura-configura-btn\">Imposta tiro</button>\
+        </div>\
+        <div id=\"misura-completato-wrap\" style=\"display:none; margin-top:10px;\">\
+          <p class=\"roll-status\">Discordanza determinata (visibile solo a te): <strong id=\"misura-discordanza-anteprima\"></strong></p>\
+          <button class=\"btn-primary\" id=\"misura-rivela-btn\">Rivela alla squadra</button>\
+        </div>\
+        <div id=\"misura-chiudi-wrap\" style=\"display:none; margin-top:10px;\">\
+          <button class=\"btn-primary\" id=\"misura-chiudi-btn\">Chiudi protocollo</button>\
+        </div>\
+      </div>\
+    </div>\
   </div>\
 \
   <div class=\"stage\" id=\"game-screen\" style=\"display:none;\">\
@@ -481,6 +518,19 @@ function markupPagina() {
     <div class=\"scene-card\">\
       <p class=\"scene-eyebrow\" id=\"scene-eyebrow\">Scena</p>\
       <p class=\"scene-text\" id=\"scene-text\"></p>\
+    </div>\
+    <div class=\"scene-card\" id=\"misura-annuncio-wrap\" style=\"display:none;\">\
+      <p class=\"scene-eyebrow\">La Misura</p>\
+      <p class=\"scene-text\" id=\"misura-annuncio-testo\"></p>\
+    </div>\
+    <div class=\"panel\" id=\"misura-stato-condiviso\" style=\"display:none;\">\
+      <p class=\"roll-status\" id=\"misura-stato-condiviso-testo\"></p>\
+    </div>\
+    <div class=\"panel\" id=\"misura-player-panel\" style=\"display:none;\">\
+      <p class=\"panel-title\">Protocollo della Misura — il tuo tiro</p>\
+      <p class=\"roll-status\" id=\"misura-player-status\"></p>\
+      <div class=\"dice-row\" id=\"misura-dice-row\"></div>\
+      <button class=\"btn-primary\" id=\"misura-tira-btn\">Tira i dadi</button>\
     </div>\
     <div class=\"panel\" id=\"approccio-panel\" style=\"display:none;\">\
       <p class=\"panel-title\">Il tuo approccio</p>\
@@ -848,6 +898,30 @@ function scriptPagina() {
     }));\
   });\
 \
+  document.getElementById('misura-avvia-btn').addEventListener('click', function () {\
+    var giocatoreId = document.getElementById('misura-giocatore').value;\
+    if (!giocatoreId) { alert('Scegli chi conduce il protocollo.'); return; }\
+    socket.send(JSON.stringify({ type: 'avvia_misura', giocatoreId: giocatoreId }));\
+  });\
+\
+  document.getElementById('misura-configura-btn').addEventListener('click', function () {\
+    var numDadi = document.getElementById('misura-numdadi').value;\
+    var competenza = document.getElementById('misura-competenza').value;\
+    socket.send(JSON.stringify({ type: 'configura_misura', numDadi: numDadi, competenza: competenza }));\
+  });\
+\
+  document.getElementById('misura-rivela-btn').addEventListener('click', function () {\
+    socket.send(JSON.stringify({ type: 'rivela_misura' }));\
+  });\
+\
+  document.getElementById('misura-chiudi-btn').addEventListener('click', function () {\
+    socket.send(JSON.stringify({ type: 'chiudi_misura' }));\
+  });\
+\
+  document.getElementById('misura-tira-btn').addEventListener('click', function () {\
+    socket.send(JSON.stringify({ type: 'tira_misura' }));\
+  });\
+\
   document.getElementById('azzardo-numero').addEventListener('change', function () {\
     document.getElementById('azzardo-destinazione-wrap').style.display =\
       this.value === '0' ? 'none' : 'flex';\
@@ -1015,6 +1089,7 @@ function scriptPagina() {
 \
     var sonoIlGM = stato.gmId === mioId;\
     var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
+    renderizzaMisura(stato, sonoIlGM);\
     var pannelloApproccio = document.getElementById('approccio-panel');\
     if (sonoSeduto && !sonoIlGM) {\
       pannelloApproccio.style.display = 'block';\
@@ -1181,6 +1256,120 @@ function scriptPagina() {
       }\
     } else {\
       pannelloTiro.style.display = 'none';\
+    }\
+  }\
+\
+  function renderizzaMisura(stato, sonoIlGM) {\
+    var misura = stato.misura;\
+    var pannelloGM = document.getElementById('misura-gm-panel');\
+    var pannelloPlayer = document.getElementById('misura-player-panel');\
+    var pannelloCondiviso = document.getElementById('misura-stato-condiviso');\
+    var pannelloAnnuncio = document.getElementById('misura-annuncio-wrap');\
+\
+    var nomiPasso = {\
+      installare: 'Passo 1 — Installare',\
+      calibrare: 'Passo 2 — Calibrare',\
+      leggere: 'Passo 3 — Leggere'\
+    };\
+\
+    if (sonoIlGM) {\
+      pannelloGM.style.display = 'block';\
+      if (!misura) {\
+        document.getElementById('misura-avvio').style.display = 'block';\
+        document.getElementById('misura-in-corso').style.display = 'none';\
+        var selMisura = document.getElementById('misura-giocatore');\
+        var scelta = selMisura.value;\
+        selMisura.innerHTML = '';\
+        stato.players.filter(function (p) { return p.role === 'player'; }).forEach(function (p) {\
+          var opt = document.createElement('option');\
+          opt.value = p.id;\
+          opt.textContent = p.nickname;\
+          selMisura.appendChild(opt);\
+        });\
+        if (scelta) selMisura.value = scelta;\
+      } else {\
+        document.getElementById('misura-avvio').style.display = 'none';\
+        document.getElementById('misura-in-corso').style.display = 'block';\
+        var conduttore = stato.players.find(function (p) { return p.id === misura.giocatoreId; });\
+        var nomeConduttore = conduttore ? conduttore.nickname : '?';\
+\
+        if (misura.passo === 'completato') {\
+          document.getElementById('misura-stato-testo').textContent =\
+            nomeConduttore + ' ha completato il protocollo.';\
+          document.getElementById('misura-config-row').style.display = 'none';\
+          if (!misura.rivelata) {\
+            document.getElementById('misura-completato-wrap').style.display = 'block';\
+            document.getElementById('misura-chiudi-wrap').style.display = 'none';\
+            document.getElementById('misura-discordanza-anteprima').textContent =\
+              'Voce ' + misura.discordanzaVoce + ' — ' + misura.discordanzaTesto;\
+          } else {\
+            document.getElementById('misura-completato-wrap').style.display = 'none';\
+            document.getElementById('misura-chiudi-wrap').style.display = 'block';\
+          }\
+        } else {\
+          document.getElementById('misura-completato-wrap').style.display = 'none';\
+          document.getElementById('misura-chiudi-wrap').style.display = 'none';\
+          document.getElementById('misura-config-row').style.display = 'flex';\
+          document.getElementById('misura-competenza-wrap').style.display =\
+            misura.passo === 'calibrare' ? 'flex' : 'none';\
+\
+          var statoTesto = nomiPasso[misura.passo] + ' — ' + nomeConduttore +\
+            ' — Soglia ' + misura.sogliaCorrente + ' (' + misura.competenzaCorrente + ')';\
+          if (misura.tiroEffettuato) {\
+            statoTesto += ' — tirato: ' + misura.risultatoDadi.join(', ') +\
+              ' (' + misura.successi + ' successi)';\
+          } else if (misura.pronto) {\
+            statoTesto += ' — in attesa che ' + nomeConduttore + ' tiri i dadi';\
+          }\
+          document.getElementById('misura-stato-testo').textContent = statoTesto;\
+        }\
+      }\
+    } else {\
+      pannelloGM.style.display = 'none';\
+    }\
+\
+    if (misura && misura.rivelata) {\
+      pannelloAnnuncio.style.display = 'block';\
+      document.getElementById('misura-annuncio-testo').textContent = misura.discordanzaTesto;\
+    } else {\
+      pannelloAnnuncio.style.display = 'none';\
+    }\
+\
+    var sonoIoIlConduttore = misura && misura.giocatoreId === mioId;\
+    if (sonoIoIlConduttore && misura.pronto && !misura.tiroEffettuato) {\
+      pannelloPlayer.style.display = 'block';\
+      document.getElementById('misura-player-status').textContent =\
+        nomiPasso[misura.passo] + ' — tiro di ' + misura.competenzaCorrente +\
+        ', soglia ' + misura.sogliaCorrente + '.';\
+      document.getElementById('misura-dice-row').innerHTML = '';\
+    } else {\
+      pannelloPlayer.style.display = 'none';\
+    }\
+\
+    if (misura && misura.tiroEffettuato && !sonoIlGM) {\
+      var rigaDadi = document.getElementById('misura-dice-row');\
+      if (sonoIoIlConduttore) {\
+        rigaDadi.innerHTML = '';\
+        misura.risultatoDadi.forEach(function (valore) {\
+          var die = document.createElement('div');\
+          die.className = 'die ' + (valore >= 5 ? 'success' : 'fail');\
+          die.textContent = valore;\
+          rigaDadi.appendChild(die);\
+        });\
+      }\
+    }\
+\
+    if (!sonoIlGM && !sonoIoIlConduttore) {\
+      if (misura && misura.attivo && misura.passo !== 'completato') {\
+        var nomeAltrui = (stato.players.find(function (p) { return p.id === misura.giocatoreId; }) || {}).nickname || '?';\
+        pannelloCondiviso.style.display = 'block';\
+        document.getElementById('misura-stato-condiviso-testo').textContent =\
+          nomeAltrui + ' sta conducendo il Protocollo della Misura — ' + nomiPasso[misura.passo] + '.';\
+      } else {\
+        pannelloCondiviso.style.display = 'none';\
+      }\
+    } else {\
+      pannelloCondiviso.style.display = 'none';\
     }\
   }\
 \

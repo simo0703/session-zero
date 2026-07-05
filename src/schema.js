@@ -54,6 +54,11 @@ function creaStatoIniziale(roomCode, gameId) {
     // per non far crescere lo stato all'infinito in sessioni lunghe.
     chat: [],
 
+    // Protocollo della Misura (Design Bible §7.1-7.2): Installare, Calibrare,
+    // Leggere. null quando non è in corso. Vedi worker.js per la logica dei
+    // tre passi e la scelta della discordanza.
+    misura: null,
+
     // L'Orologio dell'atto — avanza ogni due scene (regola fissata nel Design Bible cartaceo)
     orologio: {
       valore: 0,
@@ -209,6 +214,20 @@ const gameConfigs = {
       }
     },
     orologioSoglia: 8,
+    // Tabella delle discordanze del Protocollo della Misura (Design Bible
+    // §7.2, "costruita per il gioco, mai coi dati dei romanzi"). Indice 0-7
+    // corrisponde alle Voci 1-8 del manuale cartaceo. Il motore ne sceglie
+    // una a caso dentro la fascia decisa dal margine del Passo 3 (Leggere).
+    misuraDiscordanze: [
+      "I due strumenti, identici, danno due numeri. Si riprova. Lo scarto cresce",
+      "Il valore cambia a seconda di chi tiene lo strumento in mano",
+      "Un dato resta perfettamente fermo dove tutto, intorno, dovrebbe oscillare",
+      "Il rumore di fondo — sempre presente, in ogni rilevazione mai fatta — qui sparisce del tutto",
+      "Lo strumento registra un secondo passaggio di lettura mai comandato da nessuno",
+      "Il dato torna identico a distanza di ore, mentre ogni altra costante del sito si è spostata",
+      "Due membri della squadra, leggendo lo stesso display nello stesso istante, riportano due cifre",
+      "Il numero è quello atteso — fino all'ultima cifra, che non dovrebbe esserci"
+    ],
     // Libreria di scene pronte dal Design Bible cartaceo (v1.3), scenario
     // Petra. Ogni scena ha un id univoco "scenario:atto:scena" usato dal
     // narratore per richiamarla in lobby; il testo resta comunque

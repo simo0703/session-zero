@@ -54,6 +54,7 @@ export class GameRoom {
     if (!Array.isArray(this.stato.chat)) this.stato.chat = [];
     if (typeof this.stato.linkChiamata !== "string") this.stato.linkChiamata = "";
     if (this.stato.ultimoSuggerimento === undefined) this.stato.ultimoSuggerimento = null;
+    if (this.stato.misura === undefined) this.stato.misura = null;
 
     const scena = this.stato.scenaCorrente;
     if (scena) {
@@ -610,6 +611,192 @@ export class GameRoom {
       return;
     }
 
+    if (msg.type === "avvia_misura") {
+      // Solo il narratore avvia il protocollo, scegliendo chi lo conduce
+      // (di norma il Rilevatore, ma il manuale lascia aperta la scelta).
+      if (playerId !== this.stato.gmId) return;
+
+      const giocatore = this.stato.players.find(
+        (p) => p.id === msg.giocatoreId && p.role === "player"
+      );
+      if (!giocatore) return;
+
+      this.stato.misura = {
+        attivo: true,
+        passo: "installare",
+        giocatoreId: giocatore.id,
+        competenzaCorrente: "Strumenti",
+        sogliaCorrente: sogliaInstallare(giocatore.tracce.equipaggiamento),
+        numDadi: 0,
+        pronto: false,
+        tiroEffettuato: false,
+        risultatoDadi: [],
+        successi: 0,
+        discordanzaVoce: null,
+        discordanzaTesto: "",
+        rivelata: false,
+      };
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "configura_misura") {
+      // Il narratore imposta il numero di dadi (competenza + approccio,
+      // come per ogni altro tiro) prima che chi conduce il protocollo tiri.
+      // Per il Passo 2 (Calibrare) sceglie anche quale competenza usare.
+      if (playerId !== this.stato.gmId) return;
+      const misura = this.stato.misura;
+      if (!misura || !misura.attivo || misura.tiroEffettuato) return;
+
+      const numDadi = Math.max(1, Math.min(6, parseInt(msg.numDadi, 10) || 1));
+      misura.numDadi = numDadi;
+
+      if (misura.passo === "calibrare") {
+        misura.competenzaCorrente = ["Strumenti", "Terreno"].includes(msg.competenza)
+          ? msg.competenza
+          : "Strumenti";
+      }
+
+      misura.pronto = true;
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "tira_misura") {
+      // Solo chi conduce il protocollo tira, e solo quando il narratore ha
+      // già impostato il numero di dadi per questo tentativo.
+      const misura = this.stato.misura;
+      if (
+        !misura ||
+        !misura.attivo ||
+        !misura.pronto ||
+        misura.tiroEffettuato ||
+        misura.giocatoreId !== playerId
+      ) {
+        return;
+      }
+
+      const config = gameConfigs[this.stato.gameId] || gameConfigs["la-soglia"];
+      const giocatore = this.stato.players.find((p) => p.id === playerId);
+      if (!giocatore) return;
+
+      const risultati = [];
+      let successi = 0;
+      for (let i = 0; i < misura.numDadi; i++) {
+        const valore = 1 + Math.floor(Math.random() * 6);
+        risultati.push(valore);
+        if (valore >= SUCCESSO_DA) successi++;
+      }
+      misura.risultatoDadi = risultati;
+      misura.successi = successi;
+      misura.tiroEffettuato = true;
+
+      if (misura.passo === "installare") {
+        if (successi < misura.sogliaCorrente) {
+          // Fallimento (o riuscita con costo): l'installazione richiede
+          // modifiche urgenti. Equipaggiamento +1, poi si ripete il tiro.
+          giocatore.tracce.equipaggiamento = Math.min(
+            giocatore.tracce.equipaggiamento + 1,
+            6
+          );
+          misura.sogliaCorrente = sogliaInstallare(giocatore.tracce.equipaggiamento);
+          misura.tiroEffettuato = false;
+          misura.risultatoDadi = [];
+          misura.successi = 0;
+          // numDadi e pronto restano: il narratore può rilanciare subito
+          // lo stesso tentativo, o cambiare il numero di dadi se preferisce.
+        } else {
+          misura.passo = "calibrare";
+          misura.competenzaCorrente = "";
+          misura.sogliaCorrente = 2;
+          misura.numDadi = 0;
+          misura.pronto = false;
+          misura.tiroEffettuato = false;
+          misura.risultatoDadi = [];
+          misura.successi = 0;
+        }
+      } else if (misura.passo === "calibrare") {
+        if (successi < misura.sogliaCorrente) {
+          // La calibrazione richiede troppo tempo: Orologio +1 immediato,
+          // poi si procede comunque al Passo 3.
+          this.stato.orologio.valore = Math.min(
+            this.stato.orologio.valore + 1,
+            this.stato.orologio.soglia
+          );
+        }
+        misura.passo = "leggere";
+        misura.competenzaCorrente = "Strumenti";
+        misura.sogliaCorrente = 2;
+        misura.numDadi = 0;
+        misura.pronto = false;
+        misura.tiroEffettuato = false;
+        misura.risultatoDadi = [];
+        misura.successi = 0;
+      } else if (misura.passo === "leggere") {
+        // Il margine decide quale fascia di discordanza esce (§7.2).
+        // Anche il tiro peggiore non lascia mai la squadra a mani vuote.
+        const tabella = config.misuraDiscordanze || [];
+        let inizioFascia, lunghezzaFascia;
+        if (successi >= 3) {
+          inizioFascia = 6;
+          lunghezzaFascia = 2; // Voci 7-8
+        } else if (successi === 2) {
+          inizioFascia = 2;
+          lunghezzaFascia = 4; // Voci 3-6
+        } else {
+          inizioFascia = 0;
+          lunghezzaFascia = 2; // Voci 1-2 (anche a 0 successi)
+        }
+        const indice = inizioFascia + Math.floor(Math.random() * lunghezzaFascia);
+        misura.discordanzaVoce = indice + 1;
+        misura.discordanzaTesto = tabella[indice] || "";
+
+        if (successi === 0) {
+          // Il segnale è a malapena leggibile: la Misura si ottiene comunque,
+          // ma l'Orologio scatta subito a 8 e la squadra paga la fuga.
+          this.stato.orologio.valore = this.stato.orologio.soglia;
+          giocatore.tracce.equipaggiamento = Math.min(
+            giocatore.tracce.equipaggiamento + 1,
+            6
+          );
+        }
+
+        misura.passo = "completato";
+        misura.rivelata = false;
+        misura.pronto = false;
+      }
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "rivela_misura") {
+      // Solo il narratore decide quando leggere la discordanza alla squadra.
+      if (playerId !== this.stato.gmId) return;
+      const misura = this.stato.misura;
+      if (!misura || misura.passo !== "completato" || misura.rivelata) return;
+
+      misura.rivelata = true;
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "chiudi_misura") {
+      if (playerId !== this.stato.gmId) return;
+      this.stato.misura = null;
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
     if (msg.type === "spendi_margine") {
       const scena = this.stato.scenaCorrente;
       if (
@@ -699,6 +886,14 @@ function costruisciSchedaPersonaggio(msg, config) {
 
 // Cerca una scena nella libreria dato il suo id "scenario:atto:scena",
 // usata per calcolare il suggerimento di diramazione dopo un tiro.
+// Soglia del Passo 1 (Installare) del Protocollo della Misura, legata
+// all'Equipaggiamento di chi lo conduce (Design Bible §7.1).
+function sogliaInstallare(equipaggiamento) {
+  if (equipaggiamento >= 5) return 3;
+  if (equipaggiamento === 4) return 2;
+  return 1;
+}
+
 function trovaScenaLibreria(config, idCompleto) {
   if (!idCompleto || !config.scenari) return null;
   const pezzi = idCompleto.split(":");
