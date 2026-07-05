@@ -1,11 +1,23 @@
 // Session Zero — motore di gioco multiplayer
 // Fase 4bis: regole vere de La Soglia (tracce a 6 caselle, soglia 1-3, pool variabile)
 // Fase 5: verifica del codice d'accesso (D1) per diventare host di una stanza
+// Fase 5bis: pagina /admin per generare codici a mano (via di riserva) con QR
 
 import { creaStatoIniziale, gameConfigs } from "./schema.js";
-import { paginaLobby } from "./pages.js";
+import { paginaLobby, paginaAdmin } from "./pages.js";
 
 const SUCCESSO_DA = 5; // un dado è un successo se esce 5 o 6 (regola confermata dal Design Bible)
+
+// Alfabeto per i codici generati a mano: esclude 0/O e 1/I per evitare
+// ambiguità quando il codice viene letto o dettato a voce.
+const ALFABETO_CODICE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+// URL della futura home del sito (non ancora costruita). Il QR generato in
+// /admin porta qui, con il solo codice come parametro — quando la home
+// esisterà davvero, mostrerà le istruzioni e poi rimanderà a Session Zero.
+// Per ora punta a Session Zero stesso come placeholder: aggiornare questa
+// unica riga quando la home è pronta, nessun altro punto da toccare.
+const URL_HOME_LIBRO = "https://session-zero.smnbadii.workers.dev/";
 
 export class GameRoom {
   constructor(ctx, env) {
@@ -419,6 +431,78 @@ export class GameRoom {
   }
 }
 
+// Genera un codice casuale leggibile, usando un alfabeto senza caratteri
+// ambigui (niente 0/O, niente 1/I).
+function generaCodiceCasuale(lunghezza) {
+  let risultato = "";
+  for (let i = 0; i < lunghezza; i++) {
+    risultato += ALFABETO_CODICE[Math.floor(Math.random() * ALFABETO_CODICE.length)];
+  }
+  return risultato;
+}
+
+function jsonResponse(obj, status) {
+  return new Response(JSON.stringify(obj), {
+    status: status || 200,
+    headers: { "content-type": "application/json" },
+  });
+}
+
+// Endpoint dell'area riservata: genera un nuovo codice d'accesso a mano
+// (via di riserva per chi non ha il codice del libro, es. compratori ebook)
+// e lo salva in D1. Protetto da una password condivisa (env.ADMIN_KEY),
+// mai salvata nel codice sorgente.
+async function gestisciGeneraCodice(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return jsonResponse({ errore: "Richiesta non valida." }, 400);
+  }
+
+  if (!env.ADMIN_KEY || body.password !== env.ADMIN_KEY) {
+    return jsonResponse({ errore: "Password non corretta." }, 401);
+  }
+
+  const gameId = gameConfigs[body.gameId] ? body.gameId : null;
+  if (!gameId) {
+    return jsonResponse({ errore: "Gioco non valido." }, 400);
+  }
+
+  const nota = (body.nota || "").slice(0, 200);
+
+  let codice = null;
+  for (let tentativo = 0; tentativo < 5; tentativo++) {
+    const candidato = generaCodiceCasuale(8);
+    const esistente = await env.DB.prepare(
+      "SELECT code FROM access_codes WHERE code = ?"
+    )
+      .bind(candidato)
+      .first();
+    if (!esistente) {
+      codice = candidato;
+      break;
+    }
+  }
+
+  if (!codice) {
+    return jsonResponse(
+      { errore: "Non sono riuscito a generare un codice unico. Riprova." },
+      500
+    );
+  }
+
+  await env.DB.prepare(
+    "INSERT INTO access_codes (code, game_id, label) VALUES (?, ?, ?)"
+  )
+    .bind(codice, gameId, nota)
+    .run();
+
+  const link = URL_HOME_LIBRO + "?codice=" + codice;
+
+  return jsonResponse({ code: codice, url: link });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -441,6 +525,18 @@ export default {
       const id = env.GAME_ROOM.idFromName(roomCode);
       const stub = env.GAME_ROOM.get(id);
       return stub.fetch(request);
+    }
+
+    // Area riservata: pagina del generatore di codici
+    if (url.pathname === "/admin") {
+      return new Response(paginaAdmin(Object.keys(gameConfigs)), {
+        headers: { "content-type": "text/html; charset=UTF-8" },
+      });
+    }
+
+    // Area riservata: endpoint che genera davvero il codice
+    if (url.pathname === "/admin/genera" && request.method === "POST") {
+      return gestisciGeneraCodice(request, env);
     }
 
     // Tutto il resto: la pagina della lobby
