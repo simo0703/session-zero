@@ -172,8 +172,6 @@ export class GameRoom {
           0,
           24
         );
-        giaEsistente.competenzaPrincipale =
-          msg.competenza || giaEsistente.competenzaPrincipale;
         giaEsistente.simbolo = SIMBOLI_VALIDI.includes(msg.simbolo)
           ? msg.simbolo
           : giaEsistente.simbolo || SIMBOLI_VALIDI[0];
@@ -209,17 +207,40 @@ export class GameRoom {
         return;
       }
 
+      let schedaPersonaggio = null;
+      if (!vuoleEssereHost) {
+        const config =
+          gameConfigs[this.stato.gameId] || gameConfigs["la-soglia"];
+        schedaPersonaggio = costruisciSchedaPersonaggio(msg, config);
+        if (!schedaPersonaggio) {
+          socket.send(
+            JSON.stringify({
+              type: "errore",
+              messaggio:
+                "Scheda personaggio incompleta: scegli un Mestiere e due competenze diverse (3 dadi da distribuire, 2 e 1).",
+            })
+          );
+          return;
+        }
+      }
+
       const nuovoPlayer = {
         id: playerId,
         nickname: (msg.nickname || "Senza nome").slice(0, 24),
         role: vuoleEssereHost ? "gm" : "player",
-        competenzaPrincipale: msg.competenza || "",
         simbolo: SIMBOLI_VALIDI.includes(msg.simbolo)
           ? msg.simbolo
           : SIMBOLI_VALIDI[0],
         tracce: { corpo: 0, equipaggiamento: 0, copertura: 0 },
         connesso: true,
       };
+
+      if (schedaPersonaggio) {
+        nuovoPlayer.mestiere = schedaPersonaggio.mestiere;
+        nuovoPlayer.competenze = schedaPersonaggio.competenze;
+        nuovoPlayer.difetto = schedaPersonaggio.difetto;
+        nuovoPlayer.ragione = schedaPersonaggio.ragione;
+      }
 
       this.stato.players.push(nuovoPlayer);
       if (vuoleEssereHost) this.stato.gmId = playerId;
@@ -461,6 +482,49 @@ export class GameRoom {
 
 // Genera un codice casuale leggibile, usando un alfabeto senza caratteri
 // ambigui (niente 0/O, niente 1/I).
+// Costruisce e valida la scheda personaggio al momento della creazione:
+// Mestiere scelto (3 dadi fissi sulla sua competenza) + due competenze
+// diverse su cui distribuire i 3 punti liberi rimanenti (2 e 1, mai altro,
+// per restare fedeli alla regola "due competenze libere" del Design Bible).
+// Ritorna null se qualcosa non torna, senza mai fidarsi ciecamente del client.
+function costruisciSchedaPersonaggio(msg, config) {
+  const mestieri = config.mestieri || [];
+  const mestiereScelto = mestieri.find((m) => m.id === msg.mestiere);
+  if (!mestiereScelto) return null;
+
+  const competenzeValide = config.competenze || [];
+  const extra1 = msg.competenzaExtra1;
+  const extra2 = msg.competenzaExtra2;
+  const valore1 = parseInt(msg.valoreExtra1, 10);
+  const valore2 = parseInt(msg.valoreExtra2, 10);
+
+  if (!competenzeValide.includes(extra1) || !competenzeValide.includes(extra2)) {
+    return null;
+  }
+  if (extra1 === extra2) return null;
+  if (
+    extra1 === mestiereScelto.competenzaMestiere ||
+    extra2 === mestiereScelto.competenzaMestiere
+  ) {
+    return null;
+  }
+  if (![1, 2].includes(valore1) || ![1, 2].includes(valore2) || valore1 + valore2 !== 3) {
+    return null;
+  }
+
+  const competenze = {};
+  competenze[mestiereScelto.competenzaMestiere] = 3;
+  competenze[extra1] = valore1;
+  competenze[extra2] = valore2;
+
+  return {
+    mestiere: mestiereScelto.id,
+    competenze,
+    difetto: (msg.difetto || "").trim().slice(0, 140),
+    ragione: (msg.ragione || "").trim().slice(0, 140),
+  };
+}
+
 function generaCodiceCasuale(lunghezza) {
   let risultato = "";
   for (let i = 0; i < lunghezza; i++) {

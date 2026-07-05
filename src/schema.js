@@ -18,15 +18,21 @@ function creaStatoIniziale(roomCode, gameId) {
 
     // Chi c'è in stanza. L'host è sempre players[0] finché non si assegna il narratore.
     players: [],
-    // Esempio di un player:
+    // Esempio di un player normale (role "player"), con scheda personaggio vera:
     // {
     //   id: "p1",
     //   nickname: "Marta",
-    //   role: "player",            // "player" | "gm"
-    //   competenzaPrincipale: "",  // scelta tra le competenze di gameConfig
+    //   role: "player",
+    //   mestiere: "rilevatore",        // uno dei 6 id in gameConfig.mestieri
+    //   competenze: { "Strumenti": 3, "Terreno": 2, "Silenzio": 1 }, // 3 al Mestiere + 3 punti liberi su due extra
+    //   difetto: "",                   // il gesto che si vede (facoltativo)
+    //   ragione: "",                   // la riga sul perché ha firmato (facoltativa)
+    //   simbolo: "🧭",
     //   tracce: { corpo: 0, equipaggiamento: 0, copertura: 0 }, // 0-6 ciascuna
     //   connesso: true
     // }
+    // Chi guida la partita (role "gm") non ha mestiere/competenze/difetto/ragione:
+    // narra, non gioca una scheda.
 
     gmId: null, // id del player che guida la partita (narratore / Censore, secondo il gioco)
 
@@ -84,6 +90,54 @@ const gameConfigs = {
       "Terreno", "Corde", "Strumenti", "Lingue", "Sangue freddo", "Carico",
       "Acqua", "Meccanica", "Medicina", "Orientamento", "Trattativa", "Silenzio"
     ],
+    // I Sei Mestieri (Design Bible v1.3, §3.1-3.2): ognuno dà 3 dadi fissi
+    // sulla propria competenzaMestiere. Il resto della scheda (altri 3 punti
+    // su due competenze diverse, max 3 ciascuna) è distribuzione libera del
+    // giocatore, applicata dal motore in fase di creazione personaggio.
+    mestieri: [
+      {
+        id: "rilevatore",
+        nome: "Il Rilevatore",
+        competenzaMestiere: "Strumenti",
+        descrizione: "Gli strumenti, la misura, il metodo.",
+        rischio: "È il primo a vedere ciò che non torna."
+      },
+      {
+        id: "guida",
+        nome: "La Guida",
+        competenzaMestiere: "Orientamento",
+        descrizione: "Il terreno, l'acqua, le vie che non sono su mappa.",
+        rischio: "La sua reputazione locale è la Copertura di tutti."
+      },
+      {
+        id: "scalatore",
+        nome: "Lo Scalatore",
+        competenzaMestiere: "Corde",
+        descrizione: "Corde, pareti, passaggi impossibili.",
+        rischio: "Il Corpo: paga in mani, spalle, caviglie."
+      },
+      {
+        id: "mediatore",
+        nome: "Il Mediatore",
+        competenzaMestiere: "Lingue",
+        descrizione: "Le lingue, i permessi, i checkpoint.",
+        rischio: "Ogni bugia detta è una bugia da mantenere."
+      },
+      {
+        id: "medico",
+        nome: "Il Medico",
+        competenzaMestiere: "Medicina",
+        descrizione: "Tiene in piedi la squadra.",
+        rischio: "Decide chi si ferma. E la squadra non si ferma."
+      },
+      {
+        id: "logista",
+        nome: "Il Logista",
+        competenzaMestiere: "Carico",
+        descrizione: "Il carico, i tempi, il piano B.",
+        rischio: "Sa sempre quanto manca. Anche quando è troppo."
+      }
+    ],
     // Tre tracce di conseguenza, 6 caselle ciascuna. Ogni casella ha un segno
     // pronto da leggere ad alta voce così com'è — mai il nome dell'emozione,
     // solo il fatto, come vuole lo stile Ferrara.
@@ -133,6 +187,7 @@ const gameConfigs = {
       orologio: "the Clock"
     },
     competenze: [], // da compilare con le competenze/ruoli del Design Bible Stahl
+    mestieri: [], // da compilare quando esisterà l'equivalente per The Ledger Game
     tracce: {
       ledger: { label: "the Ledger", segni: [] } // da compilare
     },

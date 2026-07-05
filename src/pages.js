@@ -208,6 +208,14 @@ function stileCss() {
   .symbol-btn { width: 46px; height: 46px; border-radius: 8px; background: var(--walnut-dark); border: 1px solid var(--mist-dim); font-size: 20px; display: flex; align-items: center; justify-content: center; cursor: pointer; }\
   .symbol-btn:hover { border-color: var(--brass); }\
   .symbol-btn.selected { border-color: var(--brass); background: var(--brass); box-shadow: 0 0 10px rgba(192,138,62,0.5); }\
+  .mestiere-picker { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 6px; }\
+  .mestiere-btn { padding: 8px 12px; border-radius: 8px; background: var(--walnut-dark); border: 1px solid var(--mist-dim); color: var(--chalk); font-size: 13px; cursor: pointer; font-family: inherit; }\
+  .mestiere-btn:hover { border-color: var(--brass); }\
+  .mestiere-btn.selected { border-color: var(--brass); background: var(--brass); color: var(--walnut-dark); font-weight: 600; }\
+  .mestiere-flavor { font-size: 12px; color: var(--mist); margin: 8px 0 0; line-height: 1.5; min-height: 16px; }\
+  .competenze-extra-row { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-top: 6px; }\
+  .competenze-extra-row select { background: var(--walnut-dark); border: 1px solid var(--mist-dim); border-radius: 8px; padding: 8px 10px; color: var(--chalk); font-family: inherit; font-size: 13px; }\
+  .dadi-tag { font-family: 'JetBrains Mono', monospace; font-size: 12px; color: var(--brass-bright); background: rgba(192,138,62,0.15); padding: 4px 8px; border-radius: 6px; white-space: nowrap; }\
   .gm-toggle { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; padding: 10px 12px; background: rgba(180,72,58,0.08); border: 1px solid rgba(180,72,58,0.3); border-radius: 8px; }\
   .gm-toggle input { accent-color: var(--ember); width: 16px; height: 16px; }\
   .gm-toggle span { font-size: 13px; }\
@@ -285,11 +293,22 @@ function markupPagina() {
         <label>Il tuo nome</label>\
         <input type=\"text\" id=\"nickname\" placeholder=\"Come vuoi essere chiamato in stanza\">\
       </div>\
-      <div class=\"field\">\
-        <label>Competenza principale</label>\
-        <select id=\"competenza\">\
-          <option value=\"\">Scegli una competenza</option>\
-        </select>\
+      <div class=\"field\" id=\"scheda-personaggio-wrap\">\
+        <label>Mestiere</label>\
+        <div class=\"mestiere-picker\" id=\"mestiere-picker\"></div>\
+        <p class=\"mestiere-flavor\" id=\"mestiere-flavor\"></p>\
+        <label style=\"margin-top:12px;\">Altre due competenze (3 dadi da distribuire)</label>\
+        <div class=\"competenze-extra-row\">\
+          <select id=\"competenza-extra-1\"></select>\
+          <span class=\"dadi-tag\" id=\"dadi-extra-1\">2 dadi</span>\
+          <select id=\"competenza-extra-2\"></select>\
+          <span class=\"dadi-tag\" id=\"dadi-extra-2\">1 dado</span>\
+          <button type=\"button\" class=\"copy-btn\" id=\"scambia-dadi-btn\">Scambia</button>\
+        </div>\
+        <label style=\"margin-top:12px;\">Il difetto che si vede (facoltativo)</label>\
+        <input type=\"text\" id=\"difetto-input\" placeholder=\"Es. Controlla il nodo due volte\">\
+        <label style=\"margin-top:12px;\">La ragione per cui hai firmato (facoltativa)</label>\
+        <input type=\"text\" id=\"ragione-input\" placeholder=\"Una riga, letta ad alta voce una sola volta\">\
       </div>\
       <div class=\"field\">\
         <label>Il tuo simbolo</label>\
@@ -456,6 +475,9 @@ function scriptPagina() {
   var socket = new WebSocket(wsUrl);\
   var mioId = null;\
   var configAttuale = null;\
+  var mestiereSelezionato = '';\
+  var valoreExtra1 = 2;\
+  var valoreExtra2 = 1;\
 \
   socket.addEventListener('open', function () {\
     document.getElementById('status-line').textContent = 'Connesso alla stanza ' + roomCode + '.';\
@@ -481,12 +503,64 @@ function scriptPagina() {
   });\
 \
   function inizializzaConConfig() {\
-    var selComp = document.getElementById('competenza');\
-    configAttuale.competenze.forEach(function (c) {\
-      var opt = document.createElement('option');\
-      opt.value = c;\
-      opt.textContent = c;\
-      selComp.appendChild(opt);\
+    var mestieriConfig = configAttuale.mestieri || [];\
+\
+    function competenzaMestiereDi(id) {\
+      var trovato = null;\
+      mestieriConfig.forEach(function (m) { if (m.id === id) trovato = m; });\
+      return trovato ? trovato.competenzaMestiere : '';\
+    }\
+\
+    function aggiornaSelectExtra() {\
+      var esclusa = competenzaMestiereDi(mestiereSelezionato);\
+      var selezioni = [document.getElementById('competenza-extra-1'), document.getElementById('competenza-extra-2')];\
+      selezioni.forEach(function (sel) {\
+        var valorePrecedente = sel.value;\
+        sel.innerHTML = '';\
+        configAttuale.competenze.forEach(function (c) {\
+          if (c === esclusa) return;\
+          var opt = document.createElement('option');\
+          opt.value = c;\
+          opt.textContent = c;\
+          sel.appendChild(opt);\
+        });\
+        if (valorePrecedente && valorePrecedente !== esclusa) sel.value = valorePrecedente;\
+      });\
+      var sel1 = document.getElementById('competenza-extra-1');\
+      var sel2 = document.getElementById('competenza-extra-2');\
+      if (sel1.value === sel2.value && sel2.options.length > 1) {\
+        sel2.selectedIndex = sel2.selectedIndex === 0 ? 1 : 0;\
+      }\
+    }\
+\
+    var pickerMestiere = document.getElementById('mestiere-picker');\
+    mestieriConfig.forEach(function (m, idx) {\
+      var btn = document.createElement('button');\
+      btn.type = 'button';\
+      btn.className = 'mestiere-btn' + (idx === 0 ? ' selected' : '');\
+      btn.textContent = m.nome;\
+      btn.addEventListener('click', function () {\
+        mestiereSelezionato = m.id;\
+        var tutti = pickerMestiere.querySelectorAll('.mestiere-btn');\
+        tutti.forEach(function (b) { b.classList.remove('selected'); });\
+        btn.classList.add('selected');\
+        document.getElementById('mestiere-flavor').textContent = m.descrizione + ' ' + m.rischio;\
+        aggiornaSelectExtra();\
+      });\
+      pickerMestiere.appendChild(btn);\
+    });\
+    if (mestieriConfig.length) {\
+      mestiereSelezionato = mestieriConfig[0].id;\
+      document.getElementById('mestiere-flavor').textContent = mestieriConfig[0].descrizione + ' ' + mestieriConfig[0].rischio;\
+    }\
+    aggiornaSelectExtra();\
+\
+    document.getElementById('scambia-dadi-btn').addEventListener('click', function () {\
+      var tmp = valoreExtra1;\
+      valoreExtra1 = valoreExtra2;\
+      valoreExtra2 = tmp;\
+      document.getElementById('dadi-extra-1').textContent = valoreExtra1 + (valoreExtra1 === 1 ? ' dado' : ' dadi');\
+      document.getElementById('dadi-extra-2').textContent = valoreExtra2 + (valoreExtra2 === 1 ? ' dado' : ' dadi');\
     });\
 \
     var selTiroComp = document.getElementById('tiro-competenza');\
@@ -513,6 +587,7 @@ function scriptPagina() {
 \
   document.getElementById('gm-check').addEventListener('change', function () {\
     document.getElementById('codice-wrap').style.display = this.checked ? 'block' : 'none';\
+    document.getElementById('scheda-personaggio-wrap').style.display = this.checked ? 'none' : 'block';\
   });\
 \
   document.getElementById('email-submit-btn').addEventListener('click', function () {\
@@ -531,12 +606,30 @@ function scriptPagina() {
 \
   document.getElementById('sit-btn').addEventListener('click', function () {\
     var nickname = document.getElementById('nickname').value.trim();\
-    var competenza = document.getElementById('competenza').value;\
     var vuoleGM = document.getElementById('gm-check').checked;\
     var codice = document.getElementById('codice-input').value.trim();\
     if (!nickname) { alert('Scrivi un nome prima di sederti.'); return; }\
     if (vuoleGM && !codice) { alert('Inserisci il codice stampato nel libro per guidare la partita.'); return; }\
-    socket.send(JSON.stringify({ type: 'siediti', nickname: nickname, competenza: competenza, vuoleGM: vuoleGM, codice: codice, simbolo: simboloSelezionato }));\
+\
+    var payload = { type: 'siediti', nickname: nickname, vuoleGM: vuoleGM, codice: codice, simbolo: simboloSelezionato };\
+\
+    if (!vuoleGM) {\
+      var extra1 = document.getElementById('competenza-extra-1').value;\
+      var extra2 = document.getElementById('competenza-extra-2').value;\
+      if (!mestiereSelezionato || !extra1 || !extra2 || extra1 === extra2) {\
+        alert('Completa la scheda: scegli un Mestiere e due competenze diverse.');\
+        return;\
+      }\
+      payload.mestiere = mestiereSelezionato;\
+      payload.competenzaExtra1 = extra1;\
+      payload.valoreExtra1 = valoreExtra1;\
+      payload.competenzaExtra2 = extra2;\
+      payload.valoreExtra2 = valoreExtra2;\
+      payload.difetto = document.getElementById('difetto-input').value.trim();\
+      payload.ragione = document.getElementById('ragione-input').value.trim();\
+    }\
+\
+    socket.send(JSON.stringify(payload));\
   });\
 \
   document.getElementById('apri-scena-btn').addEventListener('click', function () {\
@@ -775,6 +868,9 @@ function scriptPagina() {
         rosterList.appendChild(row);\
         return;\
       }\
+      var mestiereInfo = null;\
+      (configAttuale.mestieri || []).forEach(function (m) { if (m.id === p.mestiere) mestiereInfo = m; });\
+      var mestiereNome = mestiereInfo ? mestiereInfo.nome : '';\
       var tracceHtml = Object.keys(configAttuale.tracce).map(function (chiave) {\
         var valore = p.tracce ? (p.tracce[chiave] || 0) : 0;\
         var segmenti = '';\
@@ -786,7 +882,9 @@ function scriptPagina() {
       }).join('');\
       row.innerHTML =\
         '<div style=\"width:100%;\"><div><span>' + nomeConTu + '</span><span class=\"roster-tag\" style=\"margin-left:8px;\">' +\
-        (p.competenzaPrincipale || '') + '</span></div>' + tracceHtml + '</div>';\
+        (mestiereNome || '') + '</span></div>' +\
+        (p.difetto ? '<div style=\"font-size:11px;color:var(--mist);font-style:italic;margin-top:2px;\">' + p.difetto + '</div>' : '') +\
+        tracceHtml + '</div>';\
       rosterList.appendChild(row);\
     });\
   }\
