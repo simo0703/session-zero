@@ -1,8 +1,14 @@
 // Session Zero — motore di gioco multiplayer
-// Fase 3: la stanza gestisce connessioni WebSocket reali e l'ingresso dei giocatori
+// Fase 4: motore del tiro di dadi
 
 import { creaStatoIniziale } from "./schema.js";
 import { paginaLobby } from "./pages.js";
+
+// Pool di dadi e soglia di successo per dado — valori di base (1/3 di probabilità
+// per dado, come da calibrazione già usata nel Design Bible cartaceo). Regolabili
+// in seguito quando colleghiamo le regole esatte del gioco pubblicato.
+const NUMERO_DADI = 4;
+const SUCCESSO_DA = 5; // un dado è un successo se esce 5 o 6
 
 export class GameRoom {
   constructor(ctx, env) {
@@ -179,6 +185,11 @@ export class GameRoom {
         testo,
         tiroRichiesto: false,
         giocatoreCoinvolto: null,
+        competenzaRichiesta: "",
+        sogliaRichiesta: 0,
+        tiroEffettuato: false,
+        risultatoDadi: [],
+        successi: 0,
       };
       this.stato.log.sceneAperte += 1;
 
@@ -190,6 +201,77 @@ export class GameRoom {
           this.stato.orologio.valore + 1,
           this.stato.orologio.soglia
         );
+      }
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "richiedi_tiro") {
+      // Solo il Censore può chiedere un tiro, e solo a scena aperta
+      if (playerId !== this.stato.gmId) {
+        socket.send(
+          JSON.stringify({
+            type: "errore",
+            messaggio: "Solo il Censore può richiedere un tiro.",
+          })
+        );
+        return;
+      }
+      if (this.stato.status !== "playing") return;
+
+      const giocatore = this.stato.players.find(
+        (p) => p.id === msg.giocatoreId && p.role === "player"
+      );
+      if (!giocatore) return;
+
+      const soglia = Math.max(1, Math.min(4, parseInt(msg.soglia, 10) || 2));
+
+      this.stato.scenaCorrente.tiroRichiesto = true;
+      this.stato.scenaCorrente.giocatoreCoinvolto = giocatore.id;
+      this.stato.scenaCorrente.competenzaRichiesta = msg.competenza || "";
+      this.stato.scenaCorrente.sogliaRichiesta = soglia;
+      this.stato.scenaCorrente.tiroEffettuato = false;
+      this.stato.scenaCorrente.risultatoDadi = [];
+      this.stato.scenaCorrente.successi = 0;
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "tira_dadi") {
+      const scena = this.stato.scenaCorrente;
+      if (
+        !scena.tiroRichiesto ||
+        scena.tiroEffettuato ||
+        scena.giocatoreCoinvolto !== playerId
+      ) {
+        return;
+      }
+
+      const risultati = [];
+      let successi = 0;
+      for (let i = 0; i < NUMERO_DADI; i++) {
+        const valore = 1 + Math.floor(Math.random() * 6);
+        risultati.push(valore);
+        if (valore >= SUCCESSO_DA) successi++;
+      }
+
+      scena.risultatoDadi = risultati;
+      scena.successi = successi;
+      scena.tiroEffettuato = true;
+      this.stato.log.tiriEffettuati += 1;
+
+      // Sotto soglia: il costo si riflette sulla Misura del giocatore.
+      // Regola segnaposto — da sostituire con la formula esatta quando
+      // colleghiamo le regole definitive del Design Bible.
+      if (successi < scena.sogliaRichiesta) {
+        const giocatore = this.stato.players.find((p) => p.id === playerId);
+        if (giocatore) {
+          giocatore.misura = Math.min(giocatore.misura + 1, 8);
+        }
       }
 
       this.salvaStato();

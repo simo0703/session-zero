@@ -88,6 +88,20 @@ function stileCss() {
   .roster-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px; }\
   .roster-row:last-child { border-bottom: none; }\
   .roster-tag { font-size: 11px; color: var(--mist); text-transform: uppercase; }\
+  .roll-request-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; }\
+  .field-inline { display: flex; flex-direction: column; gap: 6px; }\
+  .field-inline label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--mist); }\
+  .field-inline select, .field-inline input { background: var(--walnut-dark); border: 1px solid var(--mist-dim); border-radius: 8px; padding: 9px 10px; color: var(--chalk); font-family: 'Source Sans 3', sans-serif; font-size: 13px; }\
+  .field-inline input[type='number'] { width: 64px; }\
+  .roll-status { font-size: 13px; color: var(--mist); margin: 0 0 12px; line-height: 1.5; }\
+  .roll-status strong { color: var(--chalk); }\
+  .dice-row { display: flex; gap: 10px; margin-bottom: 14px; min-height: 46px; }\
+  .die { width: 46px; height: 46px; border-radius: 8px; background: rgba(255,255,255,0.1); color: var(--mist); display: flex; align-items: center; justify-content: center; font-family: 'JetBrains Mono', monospace; font-weight: 700; font-size: 18px; }\
+  .die.success { background: var(--brass); color: var(--walnut-dark); }\
+  .die.fail { background: rgba(255,255,255,0.08); color: var(--mist-dim); }\
+  .roster-misura { display: flex; gap: 3px; margin-top: 4px; }\
+  .roster-misura .seg { width: 8px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.1); }\
+  .roster-misura .seg.filled { background: var(--ember); }\
   ";
 }
 
@@ -154,6 +168,28 @@ function markupPagina() {
       <textarea class=\"gm-textarea\" id=\"scene-input\" placeholder=\"Scrivi qui il testo della scena…\"></textarea>\
       <button class=\"btn-primary\" id=\"apri-scena-btn\">Apri scena</button>\
     </div>\
+    <div class=\"panel\" id=\"richiedi-tiro-panel\" style=\"display:none;\">\
+      <p class=\"panel-title\">Richiedi un tiro</p>\
+      <div class=\"roll-request-row\">\
+        <div class=\"field-inline\">\
+          <label>Giocatore</label>\
+          <select id=\"tiro-giocatore\"></select>\
+        </div>\
+        <div class=\"field-inline\">\
+          <label>Competenza</label>\
+          <select id=\"tiro-competenza\">\
+            <option value=\"Sottrazione\">Sottrazione</option>\
+            <option value=\"Osservazione\">Osservazione</option>\
+            <option value=\"Dissimulazione\">Dissimulazione</option>\
+          </select>\
+        </div>\
+        <div class=\"field-inline\">\
+          <label>Soglia</label>\
+          <input type=\"number\" id=\"tiro-soglia\" value=\"2\" min=\"1\" max=\"4\">\
+        </div>\
+        <button class=\"btn-primary\" id=\"richiedi-tiro-btn\">Richiedi tiro</button>\
+      </div>\
+    </div>\
   </div>\
 \
   <div class=\"stage\" id=\"game-screen\" style=\"display:none;\">\
@@ -167,6 +203,13 @@ function markupPagina() {
     <div class=\"scene-card\">\
       <p class=\"scene-eyebrow\" id=\"scene-eyebrow\">Scena</p>\
       <p class=\"scene-text\" id=\"scene-text\"></p>\
+    </div>\
+    <div class=\"panel\" id=\"tiro-panel\" style=\"display:none;\">\
+      <p class=\"panel-title\">Tiro richiesto</p>\
+      <p class=\"roll-status\" id=\"tiro-status\"></p>\
+      <div class=\"dice-row\" id=\"dice-row\"></div>\
+      <p class=\"roll-status\" id=\"tiro-esito\"></p>\
+      <button class=\"btn-primary\" id=\"tira-dadi-btn\">Tira i dadi</button>\
     </div>\
     <div class=\"panel\">\
       <p class=\"panel-title\">Il tavolo</p>\
@@ -240,6 +283,18 @@ function scriptPagina() {
     if (!testo) { alert('Scrivi il testo della scena prima di aprirla.'); return; }\
     socket.send(JSON.stringify({ type: 'apri_scena', testo: testo }));\
     document.getElementById('scene-input').value = '';\
+  });\
+\
+  document.getElementById('richiedi-tiro-btn').addEventListener('click', function () {\
+    var giocatoreId = document.getElementById('tiro-giocatore').value;\
+    var competenza = document.getElementById('tiro-competenza').value;\
+    var soglia = document.getElementById('tiro-soglia').value;\
+    if (!giocatoreId) { alert('Scegli un giocatore.'); return; }\
+    socket.send(JSON.stringify({ type: 'richiedi_tiro', giocatoreId: giocatoreId, competenza: competenza, soglia: soglia }));\
+  });\
+\
+  document.getElementById('tira-dadi-btn').addEventListener('click', function () {\
+    socket.send(JSON.stringify({ type: 'tira_dadi' }));\
   });\
 \
   function aggiornaSchermata(stato) {\
@@ -318,14 +373,74 @@ function scriptPagina() {
     document.getElementById('scene-eyebrow').textContent = 'Scena ' + (stato.scenaCorrente.id || 1);\
     document.getElementById('scene-text').textContent = stato.scenaCorrente.testo || '';\
 \
+    var sonoIlGM = stato.gmId === mioId;\
+    var pannelloTiroGM = document.getElementById('richiedi-tiro-panel');\
+    if (sonoIlGM) {\
+      pannelloTiroGM.style.display = 'block';\
+      var select = document.getElementById('tiro-giocatore');\
+      var selezionePrecedente = select.value;\
+      select.innerHTML = '';\
+      stato.players.filter(function (p) { return p.role === 'player'; }).forEach(function (p) {\
+        var opt = document.createElement('option');\
+        opt.value = p.id;\
+        opt.textContent = p.nickname;\
+        select.appendChild(opt);\
+      });\
+      if (selezionePrecedente) select.value = selezionePrecedente;\
+    } else {\
+      pannelloTiroGM.style.display = 'none';\
+    }\
+\
+    var scena = stato.scenaCorrente;\
+    var pannelloTiro = document.getElementById('tiro-panel');\
+    var sonoIoIlDestinatario = scena.tiroRichiesto && scena.giocatoreCoinvolto === mioId;\
+    if (sonoIoIlDestinatario) {\
+      pannelloTiro.style.display = 'block';\
+      document.getElementById('tiro-status').innerHTML =\
+        'Il Censore chiede un tiro di <strong>' + scena.competenzaRichiesta + '</strong>. Soglia: <strong>' + scena.sogliaRichiesta + ' successi</strong>.';\
+\
+      var diceRow = document.getElementById('dice-row');\
+      diceRow.innerHTML = '';\
+      scena.risultatoDadi.forEach(function (valore) {\
+        var die = document.createElement('div');\
+        die.className = 'die ' + (valore >= 5 ? 'success' : 'fail');\
+        die.textContent = valore;\
+        diceRow.appendChild(die);\
+      });\
+\
+      var esito = document.getElementById('tiro-esito');\
+      var btn = document.getElementById('tira-dadi-btn');\
+      if (scena.tiroEffettuato) {\
+        esito.textContent = 'Risultato: ' + scena.successi + ' successi su ' + scena.sogliaRichiesta +\
+          (scena.successi >= scena.sogliaRichiesta ? ' — sopra soglia.' : ' — sotto soglia.');\
+        btn.disabled = true;\
+        btn.textContent = 'Tiro già effettuato';\
+      } else {\
+        esito.textContent = '';\
+        btn.disabled = false;\
+        btn.textContent = 'Tira i dadi';\
+      }\
+    } else {\
+      pannelloTiro.style.display = 'none';\
+    }\
+\
     var rosterList = document.getElementById('roster-list');\
     rosterList.innerHTML = '';\
     stato.players.forEach(function (p) {\
       var row = document.createElement('div');\
       row.className = 'roster-row';\
       var nomeConTu = p.nickname + (p.id === mioId ? ' (tu)' : '');\
-      var ruoloEtichetta = p.role === 'gm' ? 'Censore' : (p.competenzaPrincipale || 'Giocatore');\
-      row.innerHTML = '<span>' + nomeConTu + '</span><span class=\"roster-tag\">' + ruoloEtichetta + '</span>';\
+      if (p.role === 'gm') {\
+        row.innerHTML = '<span>' + nomeConTu + '</span><span class=\"roster-tag\">Censore</span>';\
+      } else {\
+        var segmenti = '';\
+        for (var s = 0; s < 8; s++) {\
+          segmenti += '<div class=\"seg' + (s < p.misura ? ' filled' : '') + '\"></div>';\
+        }\
+        row.innerHTML =\
+          '<div><span>' + nomeConTu + '</span><span class=\"roster-tag\" style=\"margin-left:8px;\">' + (p.competenzaPrincipale || 'Giocatore') + '</span></div>' +\
+          '<div class=\"roster-misura\">' + segmenti + '</div>';\
+      }\
       rosterList.appendChild(row);\
     });\
   }\
