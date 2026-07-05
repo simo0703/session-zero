@@ -74,6 +74,22 @@ function stileCss() {
   .sit-btn:disabled { background: rgba(255,255,255,0.1); color: var(--mist-dim); cursor: default; }\
   .footer-note { text-align: center; margin-top: 18px; font-size: 12px; color: var(--mist-dim); }\
   .status-line { text-align: center; font-size: 12px; color: var(--mist-dim); margin-bottom: 14px; }\
+  .orologio-wrap { display: flex; align-items: center; gap: 10px; }\
+  .orologio-label { font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--mist); }\
+  .orologio-ring { display: flex; gap: 4px; }\
+  .orologio-ring .tick { width: 14px; height: 14px; border-radius: 3px; background: rgba(255,255,255,0.06); border: 1px solid var(--mist-dim); }\
+  .orologio-ring .tick.on { background: var(--brass); border-color: var(--brass-bright); box-shadow: 0 0 8px rgba(192,138,62,0.6); }\
+  .scene-card { background: #EDE6D6; color: #2A2118; border-radius: 10px; padding: 26px 28px; box-shadow: 0 14px 30px rgba(0,0,0,0.35); background-image: repeating-linear-gradient(to bottom, transparent, transparent 27px, rgba(43,27,20,0.07) 28px); margin-bottom: 18px; }\
+  .scene-eyebrow { font-family: 'JetBrains Mono', monospace; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #8a6a3f; margin: 0 0 10px; }\
+  .scene-text { font-size: 16px; line-height: 1.6; margin: 0; white-space: pre-wrap; }\
+  .panel { background: rgba(0,0,0,0.2); border: 1px solid rgba(255,255,255,0.06); border-radius: 12px; padding: 18px 20px; margin-bottom: 16px; }\
+  .panel-title { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 600; font-size: 13px; text-transform: uppercase; letter-spacing: 0.05em; color: var(--mist); margin: 0 0 12px; }\
+  .gm-textarea { width: 100%; min-height: 110px; background: #EDE6D6; color: #2A2118; border: none; border-radius: 8px; padding: 14px 16px; font-family: inherit; font-size: 14px; line-height: 1.6; resize: vertical; }\
+  .btn-primary { background: var(--brass); color: var(--walnut-dark); border: none; border-radius: 8px; padding: 11px 18px; font-weight: 700; font-size: 14px; cursor: pointer; margin-top: 10px; }\
+  .btn-primary:hover { background: var(--brass-bright); }\
+  .roster-row { display: flex; align-items: center; justify-content: space-between; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.06); font-size: 13px; }\
+  .roster-row:last-child { border-bottom: none; }\
+  .roster-tag { font-size: 11px; color: var(--mist); text-transform: uppercase; }\
   ";
 }
 
@@ -125,7 +141,29 @@ function markupLobby() {
       </div>\
       <button class=\"sit-btn\" id=\"sit-btn\">Siediti al tavolo</button>\
     </div>\
-    <p class=\"footer-note\">La partita inizia quando il Censore decide di aprire la prima scena.</p>\
+    <p class=\"footer-note\" id=\"footer-note\">La partita inizia quando il Censore decide di aprire la prima scena.</p>\
+  </div>\
+  <div class=\"stage\" id=\"game-screen\" style=\"display:none;\">\
+    <div class=\"topbar\">\
+      <div class=\"brand\">SESSION <span>ZERO</span></div>\
+      <div class=\"orologio-wrap\">\
+        <span class=\"orologio-label\">L'Orologio</span>\
+        <div class=\"orologio-ring\" id=\"orologio-ring\"></div>\
+      </div>\
+    </div>\
+    <div class=\"scene-card\">\
+      <p class=\"scene-eyebrow\" id=\"scene-eyebrow\">Scena</p>\
+      <p class=\"scene-text\" id=\"scene-text\"></p>\
+    </div>\
+    <div class=\"panel\" id=\"gm-controls\" style=\"display:none;\">\
+      <p class=\"panel-title\">Apri la prossima scena</p>\
+      <textarea class=\"gm-textarea\" id=\"scene-input\" placeholder=\"Scrivi qui il testo della scena…\"></textarea>\
+      <button class=\"btn-primary\" id=\"apri-scena-btn\">Apri scena</button>\
+    </div>\
+    <div class=\"panel\">\
+      <p class=\"panel-title\">Il tavolo</p>\
+      <div id=\"roster-list\"></div>\
+    </div>\
   </div>\
   ";
 }
@@ -183,7 +221,19 @@ function scriptLobby() {
     document.getElementById('join-panel').style.display = 'none';\
   });\
 \
+  document.getElementById('apri-scena-btn').addEventListener('click', function () {\
+    var testo = document.getElementById('scene-input').value.trim();\
+    if (!testo) { alert('Scrivi il testo della scena prima di aprirla.'); return; }\
+    socket.send(JSON.stringify({ type: 'apri_scena', testo: testo }));\
+    document.getElementById('scene-input').value = '';\
+  });\
+\
   function aggiornaTavolo(stato) {\
+    if (stato.status === 'playing') {\
+      mostraSchermataGioco(stato);\
+      return;\
+    }\
+\
     var seats = document.querySelectorAll('.seat');\
     var giocatori = stato.players.filter(function (p) { return p.role === 'player'; });\
     for (var i = 0; i < seats.length; i++) {\
@@ -215,6 +265,46 @@ function scriptLobby() {
     document.getElementById('table-caption').innerHTML =\
       'Il tavolo si sta riempiendo — <strong>' + giocatori.length + ' di 6</strong> posti occupati. ' +\
       (gm ? 'Il Censore si è seduto.' : 'Il Censore non si è ancora seduto.');\
+\
+    if (gm && gm.id === mioId) {\
+      document.getElementById('footer-note').textContent = 'Sei il Censore. Quando vuoi, apri la prima scena per iniziare la partita.';\
+    }\
+  }\
+\
+  function mostraSchermataGioco(stato) {\
+    document.querySelector('.table-wrap').style.display = 'none';\
+    document.getElementById('join-panel').style.display = 'none';\
+    document.getElementById('footer-note').style.display = 'none';\
+    document.getElementById('game-screen').style.display = 'block';\
+\
+    var ring = document.getElementById('orologio-ring');\
+    ring.innerHTML = '';\
+    for (var i = 0; i < stato.orologio.soglia; i++) {\
+      var tick = document.createElement('div');\
+      tick.className = 'tick' + (i < stato.orologio.valore ? ' on' : '');\
+      ring.appendChild(tick);\
+    }\
+\
+    document.getElementById('scene-eyebrow').textContent = 'Scena ' + (stato.scenaCorrente.id || 1);\
+    document.getElementById('scene-text').textContent = stato.scenaCorrente.testo || '';\
+\
+    var sonoIlGM = stato.gmId === mioId;\
+    document.getElementById('gm-controls').style.display = sonoIlGM ? 'block' : 'none';\
+    if (sonoIlGM) {\
+      document.getElementById('apri-scena-btn').textContent =\
+        stato.log.sceneAperte > 0 ? 'Apri prossima scena' : 'Apri scena';\
+    }\
+\
+    var rosterList = document.getElementById('roster-list');\
+    rosterList.innerHTML = '';\
+    stato.players.forEach(function (p) {\
+      var row = document.createElement('div');\
+      row.className = 'roster-row';\
+      var nomeConTu = p.nickname + (p.id === mioId ? ' (tu)' : '');\
+      var ruoloEtichetta = p.role === 'gm' ? 'Censore' : (p.competenzaPrincipale || 'Giocatore');\
+      row.innerHTML = '<span>' + nomeConTu + '</span><span class=\"roster-tag\">' + ruoloEtichetta + '</span>';\
+      rosterList.appendChild(row);\
+    });\
   }\
   ";
 }

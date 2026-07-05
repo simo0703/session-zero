@@ -118,6 +118,46 @@ export class GameRoom {
 
       this.salvaStato();
       this.broadcast();
+      return;
+    }
+
+    if (msg.type === "apri_scena") {
+      // Solo il Censore/GM può aprire una scena
+      if (playerId !== this.stato.gmId) {
+        socket.send(
+          JSON.stringify({
+            type: "errore",
+            messaggio: "Solo il Censore può aprire una scena.",
+          })
+        );
+        return;
+      }
+
+      const testo = (msg.testo || "").slice(0, 4000);
+      if (!testo.trim()) return;
+
+      this.stato.status = "playing";
+      this.stato.scenaCorrente = {
+        id: this.stato.log.sceneAperte + 1,
+        testo,
+        tiroRichiesto: false,
+        giocatoreCoinvolto: null,
+      };
+      this.stato.log.sceneAperte += 1;
+
+      // L'Orologio avanza ogni due scene, come da Design Bible
+      this.stato.orologio.sceneContate += 1;
+      if (this.stato.orologio.sceneContate >= 2) {
+        this.stato.orologio.sceneContate = 0;
+        this.stato.orologio.valore = Math.min(
+          this.stato.orologio.valore + 1,
+          this.stato.orologio.soglia
+        );
+      }
+
+      this.salvaStato();
+      this.broadcast();
+      return;
     }
   }
 }
