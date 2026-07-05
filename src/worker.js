@@ -198,17 +198,25 @@ export class GameRoom {
         successi: 0,
         esito: "",
         segnoTesto: "",
+        margine: 0,
+        margineSpeso: false,
+        margineScelta: "",
       };
       this.stato.log.sceneAperte += 1;
 
-      // L'Orologio avanza ogni due scene, come da Design Bible
+      // L'Orologio avanza ogni due scene, come da Design Bible — a meno che
+      // qualcuno non abbia speso un margine per fermarlo questa volta.
       this.stato.orologio.sceneContate += 1;
       if (this.stato.orologio.sceneContate >= 2) {
         this.stato.orologio.sceneContate = 0;
-        this.stato.orologio.valore = Math.min(
-          this.stato.orologio.valore + 1,
-          this.stato.orologio.soglia
-        );
+        if (this.stato.orologio.congelaProssimo) {
+          this.stato.orologio.congelaProssimo = false;
+        } else {
+          this.stato.orologio.valore = Math.min(
+            this.stato.orologio.valore + 1,
+            this.stato.orologio.soglia
+          );
+        }
       }
 
       this.salvaStato();
@@ -256,6 +264,9 @@ export class GameRoom {
       this.stato.scenaCorrente.successi = 0;
       this.stato.scenaCorrente.esito = "";
       this.stato.scenaCorrente.segnoTesto = "";
+      this.stato.scenaCorrente.margine = 0;
+      this.stato.scenaCorrente.margineSpeso = false;
+      this.stato.scenaCorrente.margineScelta = "";
 
       this.salvaStato();
       this.broadcast();
@@ -290,11 +301,13 @@ export class GameRoom {
         gameConfigs[this.stato.gameId] || gameConfigs["la-soglia"];
       const traccia = scena.tracciaARischio;
 
-      // Regola vera: successi >= soglia → pieno successo, nessun costo.
+      // Regola vera: successi >= soglia → pieno successo, nessun costo,
+      // ed eventuale margine (l'eccedenza) da spendere subito.
       // Successi sotto soglia ma almeno uno → riuscita con costo, la traccia
       // segna una casella. Zero successi → il mondo risponde, costo doppio.
       if (successi >= scena.sogliaRichiesta) {
         scena.esito = "pieno";
+        scena.margine = successi - scena.sogliaRichiesta;
       } else if (successi > 0) {
         scena.esito = "costo";
         if (giocatore) {
@@ -320,6 +333,46 @@ export class GameRoom {
           scena.segnoTesto = tabella.segni[nuovoValore - 1];
         }
       }
+
+      this.salvaStato();
+      this.broadcast();
+      return;
+    }
+
+    if (msg.type === "spendi_margine") {
+      const scena = this.stato.scenaCorrente;
+      if (
+        scena.giocatoreCoinvolto !== playerId ||
+        scena.esito !== "pieno" ||
+        scena.margine <= 0 ||
+        scena.margineSpeso
+      ) {
+        return;
+      }
+
+      const giocatore = this.stato.players.find((p) => p.id === playerId);
+      if (!giocatore) return;
+
+      if (msg.scelta === "orologio") {
+        this.stato.orologio.congelaProssimo = true;
+        scena.margineScelta = "orologio";
+      } else if (msg.scelta === "traccia") {
+        const traccia = ["corpo", "equipaggiamento", "copertura"].includes(
+          msg.traccia
+        )
+          ? msg.traccia
+          : null;
+        if (!traccia || giocatore.tracce[traccia] <= 0) return;
+        giocatore.tracce[traccia] = Math.max(
+          0,
+          giocatore.tracce[traccia] - 1
+        );
+        scena.margineScelta = "traccia:" + traccia;
+      } else {
+        return;
+      }
+
+      scena.margineSpeso = true;
 
       this.salvaStato();
       this.broadcast();

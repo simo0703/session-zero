@@ -215,6 +215,17 @@ function markupPagina() {
       <div class=\"dice-row\" id=\"dice-row\"></div>\
       <p class=\"roll-status\" id=\"tiro-esito\"></p>\
       <button class=\"btn-primary\" id=\"tira-dadi-btn\">Tira i dadi</button>\
+      <div id=\"margine-panel\" style=\"display:none; margin-top:14px; padding-top:14px; border-top:1px solid rgba(255,255,255,0.08);\">\
+        <p class=\"roll-status\" id=\"margine-status\"></p>\
+        <div class=\"roll-request-row\">\
+          <div class=\"field-inline\">\
+            <label>Proteggi una traccia</label>\
+            <select id=\"margine-traccia\"></select>\
+          </div>\
+          <button class=\"btn-primary\" id=\"margine-traccia-btn\">Proteggi</button>\
+          <button class=\"btn-primary\" id=\"margine-orologio-btn\">Ferma l'Orologio</button>\
+        </div>\
+      </div>\
     </div>\
     <div class=\"panel\">\
       <p class=\"panel-title\">Il tavolo</p>\
@@ -346,6 +357,16 @@ function scriptPagina() {
     socket.send(JSON.stringify({ type: 'tira_dadi' }));\
   });\
 \
+  document.getElementById('margine-traccia-btn').addEventListener('click', function () {\
+    var traccia = document.getElementById('margine-traccia').value;\
+    if (!traccia) { alert('Scegli quale traccia proteggere.'); return; }\
+    socket.send(JSON.stringify({ type: 'spendi_margine', scelta: 'traccia', traccia: traccia }));\
+  });\
+\
+  document.getElementById('margine-orologio-btn').addEventListener('click', function () {\
+    socket.send(JSON.stringify({ type: 'spendi_margine', scelta: 'orologio' }));\
+  });\
+\
   function aggiornaSchermata(stato) {\
     var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
     var sonoIlGM = stato.gmId === mioId;\
@@ -464,10 +485,14 @@ function scriptPagina() {
 \
       var esito = document.getElementById('tiro-esito');\
       var btn = document.getElementById('tira-dadi-btn');\
+      var pannelloMargine = document.getElementById('margine-panel');\
       if (scena.tiroEffettuato) {\
         var testoEsito = '';\
         if (scena.esito === 'pieno') {\
           testoEsito = 'Pieno successo: ' + scena.successi + ' su ' + scena.sogliaRichiesta + '. Nessun costo.';\
+          if (scena.margine > 0) {\
+            testoEsito += ' Margine: <strong>' + scena.margine + '</strong>.';\
+          }\
         } else if (scena.esito === 'costo') {\
           testoEsito = 'Successo con costo: ' + scena.successi + ' su ' + scena.sogliaRichiesta + '.';\
         } else {\
@@ -479,10 +504,43 @@ function scriptPagina() {
         esito.innerHTML = testoEsito;\
         btn.disabled = true;\
         btn.textContent = 'Tiro già effettuato';\
+\
+        if (scena.esito === 'pieno' && scena.margine > 0 && !scena.margineSpeso) {\
+          pannelloMargine.style.display = 'block';\
+          document.getElementById('margine-status').textContent =\
+            'Hai ' + scena.margine + ' di margine. Come lo spendi?';\
+          var giocatoreCorrente = stato.players.find(function (p) { return p.id === mioId; });\
+          var selTraccia = document.getElementById('margine-traccia');\
+          selTraccia.innerHTML = '';\
+          Object.keys(configAttuale.tracce).forEach(function (chiave) {\
+            var valoreAttuale = giocatoreCorrente && giocatoreCorrente.tracce ? giocatoreCorrente.tracce[chiave] : 0;\
+            if (valoreAttuale > 0) {\
+              var opt = document.createElement('option');\
+              opt.value = chiave;\
+              opt.textContent = configAttuale.tracce[chiave].label + ' (' + valoreAttuale + ')';\
+              selTraccia.appendChild(opt);\
+            }\
+          });\
+          document.getElementById('margine-traccia-btn').style.display =\
+            selTraccia.options.length > 0 ? 'inline-block' : 'none';\
+        } else if (scena.margineSpeso) {\
+          pannelloMargine.style.display = 'block';\
+          document.getElementById('margine-status').textContent =\
+            scena.margineScelta === 'orologio'\
+              ? 'Margine speso: hai fermato l\\'Orologio per la prossima scena.'\
+              : 'Margine speso: hai protetto una traccia.';\
+          document.getElementById('margine-traccia-btn').style.display = 'none';\
+          document.getElementById('margine-orologio-btn').style.display = 'none';\
+        } else {\
+          pannelloMargine.style.display = 'none';\
+        }\
       } else {\
         esito.textContent = '';\
         btn.disabled = false;\
         btn.textContent = 'Tira i dadi';\
+        pannelloMargine.style.display = 'none';\
+        document.getElementById('margine-traccia-btn').style.display = 'inline-block';\
+        document.getElementById('margine-orologio-btn').style.display = 'inline-block';\
       }\
     } else {\
       pannelloTiro.style.display = 'none';\

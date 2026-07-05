@@ -34,7 +34,8 @@ function creaStatoIniziale(roomCode, gameId) {
     orologio: {
       valore: 0,
       soglia: 8,
-      sceneContate: 0
+      sceneContate: 0,
+      congelaProssimo: false // true se un giocatore ha speso il margine per fermarlo
     },
 
     // La scena attualmente aperta da chi guida la partita
@@ -51,7 +52,10 @@ function creaStatoIniziale(roomCode, gameId) {
       risultatoDadi: [],
       successi: 0,
       esito: "", // "pieno" | "costo" | "fallimento"
-      segnoTesto: ""
+      segnoTesto: "",
+      margine: 0,
+      margineSpeso: false,
+      margineScelta: "" // "traccia" | "orologio"
     },
 
     log: {
