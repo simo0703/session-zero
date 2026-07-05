@@ -174,6 +174,15 @@ function stileCss() {
     padding: 32px 16px 60px;\
   }\
   .stage { width: 100%; max-width: 760px; margin: 0 auto; }\
+  .layout-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; max-width: 1100px; margin: 0 auto; align-items: start; }\
+  .layout-main { min-width: 0; }\
+  .layout-sidebar { min-width: 0; }\
+  .layout-main .stage, .layout-sidebar .stage { max-width: none; margin: 0 0 18px; }\
+  @media (max-width: 860px) {\
+    .layout-grid { grid-template-columns: 1fr; }\
+    .layout-sidebar { order: 2; }\
+    .layout-main { order: 1; }\
+  }\
   .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }\
   .brand { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; }\
   .brand span { color: var(--brass-bright); }\
@@ -281,6 +290,9 @@ function markupPagina() {
     <p class=\"status-line\" id=\"status-line\">Connessione in corso…</p>\
   </div>\
 \
+  <div class=\"layout-grid\">\
+  <div class=\"layout-sidebar\">\
+\
   <div class=\"stage\" id=\"chiamata-wrap\">\
     <div class=\"join-panel\" style=\"padding:16px 20px; margin-bottom:14px;\">\
       <p class=\"join-title\" style=\"margin:0 0 10px;\">Chiamata vocale</p>\
@@ -322,6 +334,16 @@ function markupPagina() {
       </div>\
     </details>\
   </div>\
+\
+  <div class=\"stage\" id=\"roster-wrap\">\
+    <div class=\"panel\">\
+      <p class=\"panel-title\">Il tavolo</p>\
+      <div id=\"roster-list\"></div>\
+    </div>\
+  </div>\
+\
+  </div>\
+  <div class=\"layout-main\">\
 \
   <div class=\"stage\" id=\"lobby-screen\">\
     <div class=\"table-wrap\">\
@@ -502,10 +524,9 @@ function markupPagina() {
         </div>\
       </div>\
     </div>\
-    <div class=\"panel\">\
-      <p class=\"panel-title\">Il tavolo</p>\
-      <div id=\"roster-list\"></div>\
-    </div>\
+  </div>\
+\
+  </div>\
   </div>\
   ";
 }
@@ -885,6 +906,8 @@ function scriptPagina() {
     var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
     var sonoIlGM = stato.gmId === mioId;\
 \
+    renderizzaRoster(stato);\
+\
     if (stato.linkChiamata) {\
       document.getElementById('chiamata-form').style.display = 'none';\
       document.getElementById('chiamata-attiva').style.display = 'block';\
@@ -1159,7 +1182,9 @@ function scriptPagina() {
     } else {\
       pannelloTiro.style.display = 'none';\
     }\
+  }\
 \
+  function renderizzaRoster(stato) {\
     var rosterList = document.getElementById('roster-list');\
     rosterList.innerHTML = '';\
     stato.players.forEach(function (p) {\
