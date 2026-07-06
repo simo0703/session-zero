@@ -1513,6 +1513,7 @@ function stilePiattaforma() {
   .steps-list li { counter-increment: step; display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(243,238,226,0.08); }\
   .steps-list li:last-child { border-bottom: none; }\
   .steps-list li::before { content: counter(step); font-family: 'JetBrains Mono', monospace; color: var(--brass-bright); font-size: 14px; }\
+  .sezione-intro { text-align: center; color: var(--mist); font-size: 14px; margin: -8px 0 22px; }\
   .mestieri-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }\
   .mestiere-card { background: rgba(243,238,226,0.03); border: 1px solid rgba(243,238,226,0.08); border-radius: 10px; padding: 16px; }\
   .mestiere-card .nome { font-weight: 600; font-size: 14px; margin-bottom: 4px; }\
@@ -1520,7 +1521,12 @@ function stilePiattaforma() {
   .tracce-line { text-align: center; color: var(--mist); font-size: 14px; }\
   .tracce-line b { color: var(--chalk); }\
   .entra-box { max-width: 380px; margin: 0 auto; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 12px; padding: 26px; }\
-  .entra-box h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; margin: 0 0 16px; text-align: center; }\
+  .prereq { max-width: 480px; margin: 0 auto 28px; text-align: center; font-size: 13.5px; color: var(--mist); background: rgba(217,165,89,0.06); border: 1px solid rgba(217,165,89,0.2); border-radius: 10px; padding: 14px 18px; }\
+  .entra-box h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; margin: 0 0 8px; text-align: center; }\
+  .entra-box .box-sub { font-size: 12.5px; color: var(--mist); text-align: center; margin: 0 0 16px; }\
+  .entra-divider { text-align: center; max-width: 380px; margin: 18px auto; position: relative; }\
+  .entra-divider span { background: var(--felt-dark); padding: 0 12px; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--mist-dim); }\
+  .entra-divider::before { content: ''; position: absolute; top: 50%; left: 0; right: 0; height: 1px; background: rgba(243,238,226,0.1); z-index: -1; }\
   .field { margin-bottom: 12px; }\
   .field label { display: block; font-size: 11px; color: var(--mist); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }\
   .field input { width: 100%; background: var(--walnut-dark); border: 1px solid var(--mist-dim); border-radius: 8px; padding: 10px 12px; color: var(--chalk); font-family: inherit; font-size: 14px; }\
@@ -1593,7 +1599,7 @@ export function paginaHome() {
     "<header class=\"top\"><div class=\"wrap\"><a class=\"logo\" href=\"/\">room<span>zero</span></a></div></header>" +
     "<div class=\"hero\">" +
       "<h1>Un tavolo. Ovunque tu sia.</h1>" +
-      "<p class=\"lead\">roomzero ospita giochi di ruolo da tavolo pensati per essere giocati insieme, in tempo reale, da luoghi diversi. Ogni gioco è legato a un romanzo: il codice per iniziare si trova nella tua copia.</p>" +
+      "<p class=\"lead\">roomzero è il posto dove si gioca online ai giochi di ruolo da tavolo legati ad alcuni romanzi. Ogni gioco è collegato a un libro: dentro quel libro trovi il codice per iniziare a giocare.</p>" +
     "</div>" +
     "<section><h2 class=\"section-title\">I giochi</h2><div class=\"wrap\"><div class=\"games-grid\">" + cardsHtml + "</div></div></section>" +
     "<footer class=\"bottom\">roomzero — piattaforma di gioco, indipendente dai singoli autori.</footer>" +
@@ -1630,11 +1636,11 @@ export function paginaGioco(dati) {
   var tracceLabels = (dati.tracceLabels || []).join(", ");
 
   var sezioneMestieri = mestieriHtml
-    ? "<section><h2 class=\"section-title\">I mestieri</h2><div class=\"wrap\"><div class=\"mestieri-grid\">" + mestieriHtml + "</div></div></section>"
+    ? "<section><h2 class=\"section-title\">Scegli chi vuoi essere</h2><div class=\"wrap\"><p class=\"sezione-intro\">Ogni giocatore sceglie uno di questi 6 ruoli. Ognuno sa fare bene una cosa diversa.</p><div class=\"mestieri-grid\">" + mestieriHtml + "</div></div></section>"
     : "";
 
   var sezioneTracce = tracceLabels
-    ? "<section><div class=\"wrap\"><p class=\"tracce-line\">Tre tracce segnano il costo della missione: <b>" + tracceLabels + "</b>.</p></div></section>"
+    ? "<section><div class=\"wrap\"><p class=\"tracce-line\">Come nei videogiochi, avete tre \"barre\" che si riempiono quando le cose vanno male: <b>" + tracceLabels + "</b>. Se si riempiono tutte, la missione è compromessa.</p></div></section>"
     : "";
 
   return (
@@ -1647,8 +1653,8 @@ export function paginaGioco(dati) {
       "<h1>" + dati.nome + "</h1>" +
       "<p class=\"tagline\">" + dati.tagline + "</p>" +
       "<div class=\"meta-row\">" +
-        "<div class=\"meta-item\"><span class=\"k\">Al tavolo</span><span class=\"v\">" + dati.giocatori + "</span></div>" +
-        "<div class=\"meta-item\"><span class=\"k\">Durata</span><span class=\"v\">" + dati.durata + "</span></div>" +
+        "<div class=\"meta-item\"><span class=\"k\">Chi serve</span><span class=\"v\">" + dati.giocatori + "</span></div>" +
+        "<div class=\"meta-item\"><span class=\"k\">Quanto dura</span><span class=\"v\">" + dati.durata + "</span></div>" +
       "</div>" +
     "</div>" +
     "<section><div class=\"wrap\"><p class=\"hook\">" + dati.hook + "</p></div></section>" +
@@ -1656,14 +1662,20 @@ export function paginaGioco(dati) {
     sezioneMestieri +
     sezioneTracce +
     "<section><div class=\"wrap\">" +
+      "<p class=\"prereq\">Come funziona: <strong>una persona sola</strong> deve avere il codice stampato nel libro. Quella persona lo usa per aprire la stanza e diventa il narratore. Tutti gli <strong>altri giocatori</strong> non hanno bisogno di nessun codice del libro: entrano semplicemente con il link o il codice stanza che il narratore manda loro (per esempio su chat o messaggi).</p>" +
       "<div class=\"entra-box\">" +
-        "<h3>Vai al tavolo</h3>" +
-        "<div class=\"field\"><label>Codice del libro (opzionale)</label><input id=\"codice-libro\" type=\"text\" placeholder=\"Se sei il narratore\"></div>" +
-        "<button class=\"btn\" id=\"btn-crea\">Crea una nuova stanza</button>" +
-        "<div class=\"field\" style=\"margin-top:18px\"><label>Oppure entra con un codice stanza</label><input id=\"codice-stanza\" type=\"text\" placeholder=\"Es. TPDTTN\"></div>" +
+        "<h3>Sei il narratore?</h3>" +
+        "<p class=\"box-sub\">Inserisci il codice stampato nel tuo libro per aprire una nuova stanza.</p>" +
+        "<div class=\"field\"><label>Codice del libro</label><input id=\"codice-libro\" type=\"text\" placeholder=\"Es. AB3D9F2K\"></div>" +
+        "<button class=\"btn\" id=\"btn-crea\">Crea la stanza come narratore</button>" +
+      "</div>" +
+      "<div class=\"entra-divider\"><span>oppure</span></div>" +
+      "<div class=\"entra-box\">" +
+        "<h3>Sei un giocatore?</h3>" +
+        "<p class=\"box-sub\">Nessun codice richiesto: usa il codice stanza che ti ha dato il narratore.</p>" +
+        "<div class=\"field\"><label>Codice stanza</label><input id=\"codice-stanza\" type=\"text\" placeholder=\"Es. TPDTTN\"></div>" +
         "<button class=\"btn secondary\" id=\"btn-entra\">Entra nella stanza</button>" +
       "</div>" +
-      "<p class=\"nota-piccola\">Non hai un codice? Si trova nella tua copia del romanzo.</p>" +
     "</div></section>" +
     "<script>" +
       "document.getElementById('btn-crea').addEventListener('click', function () {" +

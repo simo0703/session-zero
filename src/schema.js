@@ -220,14 +220,15 @@ const gameConfigs = {
     // hardcoded nelle pagine condivise.
     presentazione: {
       tagline: "Il rilievo è autorizzato. Il ritorno no.",
-      hook: "Un committente senza nome assume una squadra di tecnici per un rilievo geofisico presso Petra. Sei mestieri, un contratto preciso: misurare, registrare, riferire. Ogni tiro ha un prezzo — sul corpo, sull'equipaggiamento, sulla copertura della missione.",
+      hook: "Siete una squadra di tecnici. Un committente senza nome vi ha assunti per fare un rilievo — cioè misurare e studiare un sito vicino a Petra, senza fare domande. Uno di voi guida la storia (il narratore), gli altri interpretano i personaggi della squadra. A ogni tiro di dado rischiate qualcosa: la salute, l'equipaggiamento, o il segreto della missione. Alla fine, gli strumenti danno una risposta. Ma non è detto che sia la risposta che vi aspettavate.",
       comeSiGioca: [
-        "Il narratore apre le scene, i giocatori rispondono con le loro competenze.",
-        "Ogni tiro non pieno lascia un segno narrativo vero sulla scheda.",
-        "Alla fine, il Protocollo della Misura risponde sempre. Non sempre alla domanda giusta."
+        "Un giocatore fa il narratore: racconta cosa succede e decide quando serve un tiro di dado.",
+        "Gli altri giocatori interpretano i personaggi della squadra e rispondono alle situazioni.",
+        "Ogni volta che un tiro va male (anche solo un po'), succede qualcosa di brutto: un graffio, uno strumento che si rompe, un sospetto che cresce.",
+        "Alla fine della partita, la squadra scopre cosa ha davvero trovato — e il prezzo pagato per saperlo."
       ],
-      giocatori: "1–6 giocatori e un narratore",
-      durata: "Una serata, un tavolo — anche online"
+      giocatori: "Da 2 a 7 persone: fino a 6 giocatori, più 1 narratore",
+      durata: "Una partita completa dura una serata (circa 3 ore)"
     },
     // Tabella delle discordanze del Protocollo della Misura (Design Bible
     // §7.2, "costruita per il gioco, mai coi dati dei romanzi"). Indice 0-7
