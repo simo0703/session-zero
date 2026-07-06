@@ -22,7 +22,7 @@ const ALFABETO_CODICE = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
 // esisterà davvero, mostrerà le istruzioni e poi rimanderà a Session Zero.
 // Per ora punta a Session Zero stesso come placeholder: aggiornare questa
 // unica riga quando la home è pronta, nessun altro punto da toccare.
-const URL_HOME_LIBRO = "https://session-zero.smnbadii.workers.dev/";
+const URL_HOME_LIBRO = "https://sbferrara.org/la-soglia";
 
 export class GameRoom {
   constructor(ctx, env) {
