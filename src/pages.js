@@ -82,6 +82,36 @@ function markupAdmin(opzioniGioco) {
       <button type=\"button\" class=\"secondary-btn\" id=\"copia-link-btn\">Copia link</button>\
     </div>\
   </div>\
+  <div class=\"box\" style=\"margin-top:40px; padding-top:30px; border-top:1px solid rgba(243,238,226,0.15);\">\
+    <h1>Carica materiale scaricabile</h1>\
+    <form id=\"materiale-form\">\
+      <div class=\"field\">\
+        <label>Gioco</label>\
+        <select id=\"materiale-gioco\">" + opzioniGioco + "</select>\
+      </div>\
+      <div class=\"field\">\
+        <label>Tipo</label>\
+        <select id=\"materiale-tipo\">\
+          <option value=\"quickstart\">Quickstart</option>\
+          <option value=\"schede\">Schede</option>\
+          <option value=\"design-bible\">Design Bible</option>\
+          <option value=\"scenario\">Scenario</option>\
+          <option value=\"altro\">Altro</option>\
+        </select>\
+      </div>\
+      <div class=\"field\">\
+        <label>Titolo mostrato</label>\
+        <input type=\"text\" id=\"materiale-titolo\" placeholder=\"Es. Quickstart — 4 pagine\">\
+      </div>\
+      <div class=\"field\">\
+        <label>File (max 25 MB)</label>\
+        <input type=\"file\" id=\"materiale-file\">\
+      </div>\
+      <button type=\"submit\" id=\"carica-btn\">Carica</button>\
+    </form>\
+    <button type=\"button\" class=\"secondary-btn\" id=\"vedi-materiali-btn\" style=\"margin-top:16px;\">Vedi materiali caricati</button>\
+    <div id=\"lista-materiali\" style=\"margin-top:18px;\"></div>\
+  </div>\
   ";
 }
 
@@ -136,6 +166,83 @@ function scriptAdmin() {
     this.textContent = 'Copiato!';\
     var self = this;\
     setTimeout(function () { self.textContent = 'Copia link'; }, 1500);\
+  });\
+\
+  var materialeForm = document.getElementById('materiale-form');\
+  var listaMaterialiBox = document.getElementById('lista-materiali');\
+\
+  function formatDimensione(bytes) {\
+    if (bytes > 1024 * 1024) { return (bytes / (1024 * 1024)).toFixed(1) + ' MB'; }\
+    return Math.round(bytes / 1024) + ' KB';\
+  }\
+\
+  function caricaListaMateriali() {\
+    var password = document.getElementById('password').value;\
+    if (!password) { alert('Inserisci la password qui sopra prima.'); return; }\
+    listaMaterialiBox.textContent = 'Carico…';\
+    fetch('/admin/lista-materiali?password=' + encodeURIComponent(password))\
+      .then(function (r) { return r.json(); })\
+      .then(function (data) {\
+        if (data.errore) { listaMaterialiBox.textContent = data.errore; return; }\
+        if (!data.materiali.length) { listaMaterialiBox.textContent = 'Nessun materiale caricato.'; return; }\
+        listaMaterialiBox.innerHTML = '';\
+        data.materiali.forEach(function (m) {\
+          var riga = document.createElement('div');\
+          riga.style.cssText = 'display:flex; justify-content:space-between; align-items:center; padding:8px 0; border-bottom:1px solid rgba(243,238,226,0.08); font-size:13px;';\
+          riga.innerHTML = '<span>' + m.game_id + ' · ' + m.tipo + ' · ' + m.titolo + ' (' + formatDimensione(m.size) + ')</span>';\
+          var delBtn = document.createElement('button');\
+          delBtn.type = 'button';\
+          delBtn.textContent = 'Elimina';\
+          delBtn.className = 'secondary-btn';\
+          delBtn.style.cssText = 'width:auto; padding:4px 10px; font-size:11px;';\
+          delBtn.addEventListener('click', function () {\
+            if (!confirm('Eliminare \\'' + m.titolo + '\\'?')) { return; }\
+            fetch('/admin/elimina-materiale', {\
+              method: 'POST',\
+              headers: { 'Content-Type': 'application/json' },\
+              body: JSON.stringify({ password: password, id: m.id })\
+            })\
+              .then(function (r) { return r.json(); })\
+              .then(function () { caricaListaMateriali(); });\
+          });\
+          riga.appendChild(delBtn);\
+          listaMaterialiBox.appendChild(riga);\
+        });\
+      })\
+      .catch(function (err) { listaMaterialiBox.textContent = 'Errore di rete: ' + err.message; });\
+  }\
+\
+  document.getElementById('vedi-materiali-btn').addEventListener('click', caricaListaMateriali);\
+\
+  materialeForm.addEventListener('submit', function (e) {\
+    e.preventDefault();\
+    var password = document.getElementById('password').value;\
+    var fileInput = document.getElementById('materiale-file');\
+    if (!password) { alert('Inserisci la password qui sopra prima.'); return; }\
+    if (!fileInput.files.length) { alert('Scegli un file.'); return; }\
+    var btn = document.getElementById('carica-btn');\
+    btn.disabled = true;\
+    btn.textContent = 'Carico…';\
+    var fd = new FormData();\
+    fd.append('password', password);\
+    fd.append('gameId', document.getElementById('materiale-gioco').value);\
+    fd.append('tipo', document.getElementById('materiale-tipo').value);\
+    fd.append('titolo', document.getElementById('materiale-titolo').value);\
+    fd.append('file', fileInput.files[0]);\
+    fetch('/admin/carica-materiale', { method: 'POST', body: fd })\
+      .then(function (r) { return r.json(); })\
+      .then(function (data) {\
+        btn.disabled = false;\
+        btn.textContent = 'Carica';\
+        if (data.errore) { alert(data.errore); return; }\
+        materialeForm.reset();\
+        caricaListaMateriali();\
+      })\
+      .catch(function (err) {\
+        btn.disabled = false;\
+        btn.textContent = 'Carica';\
+        alert('Errore di rete: ' + err.message);\
+      });\
   });\
   ";
 }
@@ -1520,6 +1627,11 @@ function stilePiattaforma() {
   .mestiere-card .desc { font-size: 13px; color: var(--mist); }\
   .tracce-line { text-align: center; color: var(--mist); font-size: 14px; }\
   .tracce-line b { color: var(--chalk); }\
+  .materiali-list { display: flex; flex-direction: column; gap: 10px; max-width: 480px; margin: 0 auto; }\
+  .materiale-card { display: flex; justify-content: space-between; align-items: center; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 10px; padding: 14px 18px; text-decoration: none; color: var(--chalk); transition: border-color 0.15s; }\
+  .materiale-card:hover { border-color: var(--brass); }\
+  .materiale-titolo { font-size: 14px; font-weight: 600; }\
+  .materiale-tag { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--brass-bright); }\
   .entra-box { max-width: 380px; margin: 0 auto; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 12px; padding: 26px; }\
   .prereq { max-width: 480px; margin: 0 auto 28px; text-align: center; font-size: 13.5px; color: var(--mist); background: rgba(217,165,89,0.06); border: 1px solid rgba(217,165,89,0.2); border-radius: 10px; padding: 14px 18px; }\
   .entra-box h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; margin: 0 0 8px; text-align: center; }\
@@ -1643,6 +1755,30 @@ export function paginaGioco(dati) {
     ? "<section><div class=\"wrap\"><p class=\"tracce-line\">Come nei videogiochi, avete tre \"barre\" che si riempiono quando le cose vanno male: <b>" + tracceLabels + "</b>. Se si riempiono tutte, la missione è compromessa.</p></div></section>"
     : "";
 
+  var etichetteTipo = {
+    quickstart: "Inizia subito",
+    schede: "Da stampare",
+    "design-bible": "Tutte le regole",
+    scenario: "Nuova avventura",
+    altro: ""
+  };
+
+  var materialiHtml = (dati.materiali || [])
+    .map(function (m) {
+      var etichetta = etichetteTipo[m.tipo] || "";
+      return (
+        "<a class=\"materiale-card\" href=\"/scarica/" + m.id + "\">" +
+          "<span class=\"materiale-titolo\">" + m.titolo + "</span>" +
+          (etichetta ? "<span class=\"materiale-tag\">" + etichetta + "</span>" : "") +
+        "</a>"
+      );
+    })
+    .join("");
+
+  var sezioneMateriali = materialiHtml
+    ? "<section><h2 class=\"section-title\">Vuoi giocarlo dal vivo?</h2><div class=\"wrap\"><p class=\"sezione-intro\">Scarica quello che ti serve per giocare a tavolino, senza computer.</p><div class=\"materiali-list\">" + materialiHtml + "</div></div></section>"
+    : "";
+
   return (
     "<!DOCTYPE html><html lang=\"it\"><head>" +
     headPiattaforma(dati.nome + " — roomzero") +
@@ -1661,6 +1797,7 @@ export function paginaGioco(dati) {
     "<section><h2 class=\"section-title\">Come si gioca</h2><div class=\"wrap\"><ol class=\"steps-list\">" + passiHtml + "</ol></div></section>" +
     sezioneMestieri +
     sezioneTracce +
+    sezioneMateriali +
     "<section><div class=\"wrap\">" +
       "<p class=\"prereq\">Come funziona: <strong>una persona sola</strong> deve avere il codice stampato nel libro. Quella persona lo usa per aprire la stanza e diventa il narratore. Tutti gli <strong>altri giocatori</strong> non hanno bisogno di nessun codice del libro: entrano semplicemente con il link o il codice stanza che il narratore manda loro (per esempio su chat o messaggi).</p>" +
       "<div class=\"entra-box\">" +

@@ -993,6 +993,130 @@ async function gestisciGeneraCodice(request, env) {
   return jsonResponse({ code: codice, url: link });
 }
 
+// Tipi di materiale ammessi in upload — whitelist server-side, mai fidarsi
+// del valore mandato dal client.
+const TIPI_MATERIALE = ["quickstart", "schede", "design-bible", "scenario", "altro"];
+
+// Endpoint dell'area riservata: carica un file (PDF, .md, ecc.) su R2 e ne
+// registra i metadati in D1. Multipart/form-data, protetto da ADMIN_KEY.
+async function gestisciCaricaMateriale(request, env) {
+  if (!env.MATERIALI) {
+    return jsonResponse({ errore: "Bucket materiali non configurato." }, 500);
+  }
+
+  let form;
+  try {
+    form = await request.formData();
+  } catch (e) {
+    return jsonResponse({ errore: "Richiesta non valida." }, 400);
+  }
+
+  const password = form.get("password");
+  if (!env.ADMIN_KEY || password !== env.ADMIN_KEY) {
+    return jsonResponse({ errore: "Password non corretta." }, 401);
+  }
+
+  const gameId = gameConfigs[form.get("gameId")] ? form.get("gameId") : null;
+  if (!gameId) {
+    return jsonResponse({ errore: "Gioco non valido." }, 400);
+  }
+
+  const tipo = TIPI_MATERIALE.includes(form.get("tipo")) ? form.get("tipo") : "altro";
+  const titolo = (form.get("titolo") || "").toString().slice(0, 200);
+  const file = form.get("file");
+
+  if (!file || typeof file === "string") {
+    return jsonResponse({ errore: "Nessun file ricevuto." }, 400);
+  }
+  if (file.size > 25 * 1024 * 1024) {
+    return jsonResponse({ errore: "File troppo grande (limite 25 MB)." }, 400);
+  }
+
+  const nomeFilePulito = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+  const chiaveR2 = "materiali/" + gameId + "/" + Date.now() + "-" + nomeFilePulito;
+
+  await env.MATERIALI.put(chiaveR2, file.stream(), {
+    httpMetadata: { contentType: file.type || "application/octet-stream" },
+  });
+
+  const risultato = await env.DB.prepare(
+    "INSERT INTO materiali (game_id, tipo, titolo, filename, r2_key, content_type, size, uploaded_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))"
+  )
+    .bind(gameId, tipo, titolo || nomeFilePulito, nomeFilePulito, chiaveR2, file.type || "application/octet-stream", file.size)
+    .run();
+
+  return jsonResponse({ ok: true, id: risultato.meta.last_row_id });
+}
+
+// Endpoint dell'area riservata: elenca i materiali caricati per un gioco
+// (o per tutti, se gameId non è specificato). Protetto da ADMIN_KEY via query.
+async function gestisciListaMateriali(request, env) {
+  const url = new URL(request.url);
+  const password = url.searchParams.get("password");
+  if (!env.ADMIN_KEY || password !== env.ADMIN_KEY) {
+    return jsonResponse({ errore: "Password non corretta." }, 401);
+  }
+
+  const { results } = await env.DB.prepare(
+    "SELECT id, game_id, tipo, titolo, filename, size, uploaded_at FROM materiali ORDER BY game_id, tipo, uploaded_at DESC"
+  ).all();
+
+  return jsonResponse({ materiali: results });
+}
+
+// Endpoint dell'area riservata: elimina un materiale (da R2 e da D1).
+async function gestisciEliminaMateriale(request, env) {
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return jsonResponse({ errore: "Richiesta non valida." }, 400);
+  }
+
+  if (!env.ADMIN_KEY || body.password !== env.ADMIN_KEY) {
+    return jsonResponse({ errore: "Password non corretta." }, 401);
+  }
+
+  const riga = await env.DB.prepare("SELECT r2_key FROM materiali WHERE id = ?")
+    .bind(body.id)
+    .first();
+  if (!riga) {
+    return jsonResponse({ errore: "Materiale non trovato." }, 404);
+  }
+
+  await env.MATERIALI.delete(riga.r2_key);
+  await env.DB.prepare("DELETE FROM materiali WHERE id = ?").bind(body.id).run();
+
+  return jsonResponse({ ok: true });
+}
+
+// Route pubblica: scarica un materiale dato il suo id. Nessuna password:
+// una volta pubblicato, il materiale è pensato per essere scaricabile da
+// chiunque arrivi dalla pagina del gioco.
+async function gestisciScaricaMateriale(id, env) {
+  const riga = await env.DB.prepare(
+    "SELECT filename, r2_key, content_type FROM materiali WHERE id = ?"
+  )
+    .bind(id)
+    .first();
+
+  if (!riga) {
+    return new Response("Materiale non trovato.", { status: 404 });
+  }
+
+  const oggetto = await env.MATERIALI.get(riga.r2_key);
+  if (!oggetto) {
+    return new Response("File non trovato nell'archivio.", { status: 404 });
+  }
+
+  return new Response(oggetto.body, {
+    headers: {
+      "content-type": riga.content_type || "application/octet-stream",
+      "content-disposition": "attachment; filename=\"" + riga.filename + "\"",
+    },
+  });
+}
+
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
@@ -1028,6 +1152,19 @@ export default {
     // Pagina pubblica di un singolo gioco (presentazione + ingresso)
     if (url.pathname === "/la-soglia" && !url.searchParams.get("room")) {
       const config = gameConfigs["la-soglia"];
+      let materiali = [];
+      try {
+        const { results } = await env.DB.prepare(
+          "SELECT id, tipo, titolo, filename, size FROM materiali WHERE game_id = ? ORDER BY tipo, uploaded_at DESC"
+        )
+          .bind("la-soglia")
+          .all();
+        materiali = results;
+      } catch (e) {
+        // Se la tabella materiali non esiste ancora, la pagina resta
+        // comunque funzionante, semplicemente senza sezione download.
+        materiali = [];
+      }
       const dati = {
         id: "la-soglia",
         nome: config.nome,
@@ -1038,6 +1175,7 @@ export default {
         durata: config.presentazione.durata,
         mestieri: config.mestieri,
         tracceLabels: Object.keys(config.tracce).map((k) => config.tracce[k].label),
+        materiali: materiali,
       };
       return new Response(paginaGioco(dati), {
         headers: { "content-type": "text/html; charset=UTF-8" },
@@ -1059,6 +1197,23 @@ export default {
     // Area riservata: endpoint che genera davvero il codice
     if (url.pathname === "/admin/genera" && request.method === "POST") {
       return gestisciGeneraCodice(request, env);
+    }
+
+    // Area riservata: carica, elenca, elimina materiali scaricabili
+    if (url.pathname === "/admin/carica-materiale" && request.method === "POST") {
+      return gestisciCaricaMateriale(request, env);
+    }
+    if (url.pathname === "/admin/lista-materiali" && request.method === "GET") {
+      return gestisciListaMateriali(request, env);
+    }
+    if (url.pathname === "/admin/elimina-materiale" && request.method === "POST") {
+      return gestisciEliminaMateriale(request, env);
+    }
+
+    // Route pubblica di download: /scarica/123
+    if (url.pathname.startsWith("/scarica/")) {
+      const id = url.pathname.split("/")[2];
+      return gestisciScaricaMateriale(id, env);
     }
 
     // Tutto il resto: la pagina della lobby
