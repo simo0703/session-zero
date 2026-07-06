@@ -22,5 +22,11 @@
       "database_name": "session-zero-db",
       "database_id": "ed0c31a1-2228-4e84-82e3-0cecff290b4a"
     }
+  ],
+  "r2_buckets": [
+    {
+      "binding": "MATERIALI",
+      "bucket_name": "session-zero-materiali"
+    }
   ]
 }
