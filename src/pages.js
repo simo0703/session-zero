@@ -1460,3 +1460,225 @@ function scriptPagina() {
   }\
   ";
 }
+
+// ============================================================
+// Pagine pubbliche della piattaforma: home e pagina di ogni gioco.
+// Stile proprio di roomzero (feltro/legno/ottone, §5 bibbia tecnica),
+// distinto dallo stile dei siti d'autore che portano qui i lettori.
+// ============================================================
+
+function stilePiattaforma() {
+  return "\
+  :root {\
+    --walnut: #2B1B14; --walnut-dark: #1C120C; --felt: #1E3A32; --felt-dark: #162B25;\
+    --chalk: #F3EEE2; --brass: #C08A3E; --brass-bright: #D9A559;\
+    --mist: #8FA89C; --mist-dim: #5C7469; --oxide: #B4483A;\
+  }\
+  * { box-sizing: border-box; }\
+  body {\
+    margin: 0; background: var(--felt-dark); color: var(--chalk);\
+    font-family: 'Source Sans 3', sans-serif; line-height: 1.6;\
+  }\
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }\
+  header.top { padding: 28px 20px; border-bottom: 1px solid rgba(243,238,226,0.08); }\
+  header.top .wrap { display: flex; align-items: center; justify-content: space-between; }\
+  .logo { font-family: 'Bricolage Grotesque', sans-serif; font-size: 18px; font-weight: 600; letter-spacing: 0.04em; color: var(--chalk); text-decoration: none; }\
+  .logo span { color: var(--brass-bright); }\
+  .hero { padding: 64px 20px 44px; text-align: center; }\
+  .hero h1 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 40px; margin: 0 0 14px; }\
+  .hero p.lead { color: var(--mist); font-size: 17px; max-width: 480px; margin: 0 auto; }\
+  section { padding: 12px 20px 56px; }\
+  h2.section-title { font-family: 'Bricolage Grotesque', sans-serif; font-size: 13px; text-transform: uppercase; letter-spacing: 0.14em; color: var(--mist); margin: 0 0 22px; text-align: center; }\
+  .games-grid { display: grid; gap: 16px; }\
+  .game-card { display: block; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 12px; padding: 24px; text-decoration: none; color: inherit; transition: border-color 0.15s, background 0.15s; }\
+  .game-card:not(.disabled):hover { border-color: var(--brass); background: rgba(243,238,226,0.07); }\
+  .game-card.disabled { opacity: 0.55; cursor: default; }\
+  .game-card h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; margin: 0 0 6px; color: var(--chalk); }\
+  .game-card .tagline { font-style: italic; color: var(--mist); font-size: 14px; margin: 0 0 10px; }\
+  .game-card .status { display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; padding: 4px 10px; border-radius: 999px; }\
+  .status.live { background: rgba(217,165,89,0.15); color: var(--brass-bright); }\
+  .status.presto { background: rgba(143,168,156,0.15); color: var(--mist); }\
+  .status.esterno { background: rgba(180,72,58,0.15); color: #d98a7d; }\
+  footer.bottom { padding: 40px 20px; text-align: center; color: var(--mist-dim); font-size: 12px; border-top: 1px solid rgba(243,238,226,0.08); }\
+  .game-hero { padding: 56px 20px 40px; text-align: center; }\
+  .game-hero .kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--brass-bright); }\
+  .game-hero h1 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 36px; margin: 10px 0 12px; }\
+  .game-hero .tagline { font-style: italic; color: var(--mist); font-size: 16px; }\
+  .meta-row { display: flex; justify-content: center; gap: 32px; margin-top: 26px; flex-wrap: wrap; }\
+  .meta-item { text-align: center; }\
+  .meta-item .k { display: block; font-size: 10px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--mist-dim); margin-bottom: 4px; }\
+  .meta-item .v { font-size: 14px; color: var(--chalk); }\
+  .hook { font-size: 16px; color: #c8c0b0; max-width: 560px; margin: 0 auto; }\
+  .steps-list { list-style: none; padding: 0; max-width: 480px; margin: 0 auto; counter-reset: step; }\
+  .steps-list li { counter-increment: step; display: flex; gap: 14px; padding: 12px 0; border-bottom: 1px solid rgba(243,238,226,0.08); }\
+  .steps-list li:last-child { border-bottom: none; }\
+  .steps-list li::before { content: counter(step); font-family: 'JetBrains Mono', monospace; color: var(--brass-bright); font-size: 14px; }\
+  .mestieri-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }\
+  .mestiere-card { background: rgba(243,238,226,0.03); border: 1px solid rgba(243,238,226,0.08); border-radius: 10px; padding: 16px; }\
+  .mestiere-card .nome { font-weight: 600; font-size: 14px; margin-bottom: 4px; }\
+  .mestiere-card .desc { font-size: 13px; color: var(--mist); }\
+  .tracce-line { text-align: center; color: var(--mist); font-size: 14px; }\
+  .tracce-line b { color: var(--chalk); }\
+  .entra-box { max-width: 380px; margin: 0 auto; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 12px; padding: 26px; }\
+  .entra-box h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 16px; margin: 0 0 16px; text-align: center; }\
+  .field { margin-bottom: 12px; }\
+  .field label { display: block; font-size: 11px; color: var(--mist); margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.05em; }\
+  .field input { width: 100%; background: var(--walnut-dark); border: 1px solid var(--mist-dim); border-radius: 8px; padding: 10px 12px; color: var(--chalk); font-family: inherit; font-size: 14px; }\
+  .field input:focus { outline: none; border-color: var(--brass); }\
+  .btn { display: block; width: 100%; background: var(--brass); color: var(--walnut-dark); border: none; border-radius: 8px; padding: 13px; font-weight: 600; font-size: 14px; cursor: pointer; text-align: center; text-decoration: none; }\
+  .btn:hover { background: var(--brass-bright); }\
+  .btn.secondary { background: none; border: 1px solid var(--mist-dim); color: var(--mist); margin-top: 8px; }\
+  .btn.secondary:hover { background: none; border-color: var(--brass); color: var(--brass-bright); }\
+  .nota-piccola { text-align: center; font-size: 12px; color: var(--mist-dim); margin-top: 14px; }\
+  .back-link { display: inline-block; margin: 0 20px 8px; color: var(--mist); font-size: 13px; text-decoration: none; }\
+  .back-link:hover { color: var(--brass-bright); }\
+  ";
+}
+
+function headPiattaforma(titolo) {
+  return "\
+  <meta charset=\"UTF-8\">\
+  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">\
+  <title>" + titolo + "</title>\
+  <link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\
+  <link href=\"https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@500;600;700&family=Source+Sans+3:wght@300;400;600&family=JetBrains+Mono&display=swap\" rel=\"stylesheet\">\
+  <style>" + stilePiattaforma() + "</style>\
+  ";
+}
+
+export function paginaHome() {
+  var giochi = [
+    {
+      href: "/la-soglia",
+      nome: "La Soglia",
+      tagline: "Il rilievo è autorizzato. Il ritorno no.",
+      stato: "live",
+      statoLabel: "Disponibile"
+    },
+    {
+      href: null,
+      nome: "The Ledger Game",
+      tagline: "In arrivo.",
+      stato: "presto",
+      statoLabel: "Presto disponibile"
+    },
+    {
+      href: "https://corsa.roomzero.online",
+      nome: "La Corsa Invisibile",
+      tagline: "Un'ambientazione storica, una squadra, un ritmo da tenere.",
+      stato: "esterno",
+      statoLabel: "Progetto indipendente"
+    }
+  ];
+
+  var cardsHtml = giochi
+    .map(function (g) {
+      var tag = g.href ? "a" : "div";
+      var hrefAttr = g.href ? " href=\"" + g.href + "\"" : "";
+      var classi = "game-card" + (g.href ? "" : " disabled");
+      return (
+        "<" + tag + " class=\"" + classi + "\"" + hrefAttr + ">" +
+          "<h3>" + g.nome + "</h3>" +
+          "<p class=\"tagline\">" + g.tagline + "</p>" +
+          "<span class=\"status " + g.stato + "\">" + g.statoLabel + "</span>" +
+        "</" + tag + ">"
+      );
+    })
+    .join("");
+
+  return (
+    "<!DOCTYPE html><html lang=\"it\"><head>" +
+    headPiattaforma("roomzero — giochi di ruolo da tavolo, online") +
+    "</head><body>" +
+    "<header class=\"top\"><div class=\"wrap\"><a class=\"logo\" href=\"/\">room<span>zero</span></a></div></header>" +
+    "<div class=\"hero\">" +
+      "<h1>Un tavolo. Ovunque tu sia.</h1>" +
+      "<p class=\"lead\">roomzero ospita giochi di ruolo da tavolo pensati per essere giocati insieme, in tempo reale, da luoghi diversi. Ogni gioco è legato a un romanzo: il codice per iniziare si trova nella tua copia.</p>" +
+    "</div>" +
+    "<section><h2 class=\"section-title\">I giochi</h2><div class=\"wrap\"><div class=\"games-grid\">" + cardsHtml + "</div></div></section>" +
+    "<footer class=\"bottom\">roomzero — piattaforma di gioco, indipendente dai singoli autori.</footer>" +
+    "</body></html>"
+  );
+}
+
+export function paginaInArrivo(nome) {
+  return (
+    "<!DOCTYPE html><html lang=\"it\"><head>" +
+    headPiattaforma(nome + " — presto su roomzero") +
+    "</head><body>" +
+    "<a class=\"back-link\" href=\"/\">&larr; roomzero</a>" +
+    "<div class=\"game-hero\">" +
+      "<span class=\"kicker\">In costruzione</span>" +
+      "<h1>" + nome + "</h1>" +
+      "<p class=\"tagline\">Questo gioco non è ancora disponibile. Torna presto.</p>" +
+    "</div>" +
+    "</body></html>"
+  );
+}
+
+export function paginaGioco(dati) {
+  var mestieriHtml = (dati.mestieri || [])
+    .map(function (m) {
+      return "<div class=\"mestiere-card\"><div class=\"nome\">" + m.nome + "</div><div class=\"desc\">" + m.descrizione + "</div></div>";
+    })
+    .join("");
+
+  var passiHtml = (dati.comeSiGioca || [])
+    .map(function (p) { return "<li>" + p + "</li>"; })
+    .join("");
+
+  var tracceLabels = (dati.tracceLabels || []).join(", ");
+
+  var sezioneMestieri = mestieriHtml
+    ? "<section><h2 class=\"section-title\">I mestieri</h2><div class=\"wrap\"><div class=\"mestieri-grid\">" + mestieriHtml + "</div></div></section>"
+    : "";
+
+  var sezioneTracce = tracceLabels
+    ? "<section><div class=\"wrap\"><p class=\"tracce-line\">Tre tracce segnano il costo della missione: <b>" + tracceLabels + "</b>.</p></div></section>"
+    : "";
+
+  return (
+    "<!DOCTYPE html><html lang=\"it\"><head>" +
+    headPiattaforma(dati.nome + " — roomzero") +
+    "</head><body>" +
+    "<a class=\"back-link\" href=\"/\">&larr; roomzero</a>" +
+    "<div class=\"game-hero\">" +
+      "<span class=\"kicker\">Gioco di ruolo da tavolo</span>" +
+      "<h1>" + dati.nome + "</h1>" +
+      "<p class=\"tagline\">" + dati.tagline + "</p>" +
+      "<div class=\"meta-row\">" +
+        "<div class=\"meta-item\"><span class=\"k\">Al tavolo</span><span class=\"v\">" + dati.giocatori + "</span></div>" +
+        "<div class=\"meta-item\"><span class=\"k\">Durata</span><span class=\"v\">" + dati.durata + "</span></div>" +
+      "</div>" +
+    "</div>" +
+    "<section><div class=\"wrap\"><p class=\"hook\">" + dati.hook + "</p></div></section>" +
+    "<section><h2 class=\"section-title\">Come si gioca</h2><div class=\"wrap\"><ol class=\"steps-list\">" + passiHtml + "</ol></div></section>" +
+    sezioneMestieri +
+    sezioneTracce +
+    "<section><div class=\"wrap\">" +
+      "<div class=\"entra-box\">" +
+        "<h3>Vai al tavolo</h3>" +
+        "<div class=\"field\"><label>Codice del libro (opzionale)</label><input id=\"codice-libro\" type=\"text\" placeholder=\"Se sei il narratore\"></div>" +
+        "<button class=\"btn\" id=\"btn-crea\">Crea una nuova stanza</button>" +
+        "<div class=\"field\" style=\"margin-top:18px\"><label>Oppure entra con un codice stanza</label><input id=\"codice-stanza\" type=\"text\" placeholder=\"Es. TPDTTN\"></div>" +
+        "<button class=\"btn secondary\" id=\"btn-entra\">Entra nella stanza</button>" +
+      "</div>" +
+      "<p class=\"nota-piccola\">Non hai un codice? Si trova nella tua copia del romanzo.</p>" +
+    "</div></section>" +
+    "<script>" +
+      "document.getElementById('btn-crea').addEventListener('click', function () {" +
+        "var codice = document.getElementById('codice-libro').value.trim();" +
+        "var room = Math.random().toString(36).slice(2, 8).toUpperCase();" +
+        "var url = '/?room=' + room + '&game=" + dati.id + "';" +
+        "if (codice) { url += '&codice=' + encodeURIComponent(codice) + '&autohost=1'; }" +
+        "window.location.href = url;" +
+      "});" +
+      "document.getElementById('btn-entra').addEventListener('click', function () {" +
+        "var room = document.getElementById('codice-stanza').value.trim().toUpperCase();" +
+        "if (!room) { return; }" +
+        "window.location.href = '/?room=' + room + '&game=" + dati.id + "';" +
+      "});" +
+    "</script>" +
+    "</body></html>"
+  );
+}

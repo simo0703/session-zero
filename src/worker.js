@@ -4,7 +4,7 @@
 // Fase 5bis: pagina /admin per generare codici a mano (via di riserva) con QR
 
 import { creaStatoIniziale, gameConfigs } from "./schema.js";
-import { paginaLobby, paginaAdmin } from "./pages.js";
+import { paginaLobby, paginaAdmin, paginaHome, paginaGioco, paginaInArrivo } from "./pages.js";
 
 // Simboli di gioco selezionabili alla creazione del personaggio. Whitelist
 // server-side: qualunque valore non presente qui viene ignorato e sostituito
@@ -1015,6 +1015,38 @@ export default {
       const id = env.GAME_ROOM.idFromName(roomCode);
       const stub = env.GAME_ROOM.get(id);
       return stub.fetch(request);
+    }
+
+    // Home della piattaforma: solo se non si arriva già con un codice stanza
+    // (link/QR diretti continuano a funzionare come prima, vedi sotto).
+    if (url.pathname === "/" && !url.searchParams.get("room")) {
+      return new Response(paginaHome(), {
+        headers: { "content-type": "text/html; charset=UTF-8" },
+      });
+    }
+
+    // Pagina pubblica di un singolo gioco (presentazione + ingresso)
+    if (url.pathname === "/la-soglia" && !url.searchParams.get("room")) {
+      const config = gameConfigs["la-soglia"];
+      const dati = {
+        id: "la-soglia",
+        nome: config.nome,
+        tagline: config.presentazione.tagline,
+        hook: config.presentazione.hook,
+        comeSiGioca: config.presentazione.comeSiGioca,
+        giocatori: config.presentazione.giocatori,
+        durata: config.presentazione.durata,
+        mestieri: config.mestieri,
+        tracceLabels: Object.keys(config.tracce).map((k) => config.tracce[k].label),
+      };
+      return new Response(paginaGioco(dati), {
+        headers: { "content-type": "text/html; charset=UTF-8" },
+      });
+    }
+    if (url.pathname === "/ledger-game" && !url.searchParams.get("room")) {
+      return new Response(paginaInArrivo("The Ledger Game"), {
+        headers: { "content-type": "text/html; charset=UTF-8" },
+      });
     }
 
     // Area riservata: pagina del generatore di codici

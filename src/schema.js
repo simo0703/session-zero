@@ -214,6 +214,21 @@ const gameConfigs = {
       }
     },
     orologioSoglia: 8,
+    // Testo di presentazione per le pagine pubbliche (home piattaforma,
+    // pagina del gioco). Contenuto editoriale, non meccanica di gioco —
+    // ma resta qui per rispettare il muro: nessun testo d'ambientazione
+    // hardcoded nelle pagine condivise.
+    presentazione: {
+      tagline: "Il rilievo è autorizzato. Il ritorno no.",
+      hook: "Un committente senza nome assume una squadra di tecnici per un rilievo geofisico presso Petra. Sei mestieri, un contratto preciso: misurare, registrare, riferire. Ogni tiro ha un prezzo — sul corpo, sull'equipaggiamento, sulla copertura della missione.",
+      comeSiGioca: [
+        "Il narratore apre le scene, i giocatori rispondono con le loro competenze.",
+        "Ogni tiro non pieno lascia un segno narrativo vero sulla scheda.",
+        "Alla fine, il Protocollo della Misura risponde sempre. Non sempre alla domanda giusta."
+      ],
+      giocatori: "1–6 giocatori e un narratore",
+      durata: "Una serata, un tavolo — anche online"
+    },
     // Tabella delle discordanze del Protocollo della Misura (Design Bible
     // §7.2, "costruita per il gioco, mai coi dati dei romanzi"). Indice 0-7
     // corrisponde alle Voci 1-8 del manuale cartaceo. Il motore ne sceglie
