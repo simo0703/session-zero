@@ -317,6 +317,79 @@ const gameConfigs = {
                 }
               }
             ]
+          },
+          {
+            numero: 2,
+            titolo: "La pista",
+            chiusura:
+              "Stesso conteggio fisso di sempre (1 casella di Orologio ogni 2 scene). Le tre scene di questo atto portano l'Orologio a circa 2-3 caselle su 8, più eventuali penalità dalle scene sotto — a seconda di come è andato l'Atto 1.",
+            png: [
+              {
+                nome: "L'altra squadra",
+                descrizione:
+                  "Ancora uno specchio, mai vista di persona in questo atto: solo un accampamento lasciato indietro e, se la scena 2.3 va male, la sua ombra su un posto di blocco che qualcuno ha già attraversato prima di voi."
+              },
+              {
+                nome: "La pattuglia di frontiera",
+                descrizione:
+                  "Un piccolo gruppo, due o tre uomini, un solo veicolo. Non cerca la squadra in particolare: controlla chiunque passi. Non ha nome nel testo base, il narratore ne dà uno se serve."
+              }
+            ],
+            scene: [
+              {
+                id: "apertura",
+                titolo: "Apertura",
+                testo:
+                  "Se la squadra ha letto bene le tracce (Atto 1, scena 1.3 riuscita), parte lo stesso giorno, con un vantaggio chiaro. Se non le ha lette bene, parte un giorno dopo — il narratore lo dice così, senza spiegare cosa significhi in pratica: lo si scoprirà dentro le scene.",
+                tiro: null,
+                diramazioni: null
+              },
+              {
+                id: "2.1",
+                titolo: "Il canalone",
+                testo:
+                  "La pista dell'altra squadra taglia dritta attraverso un canalone di roccia friabile — l'unico passaggio che non allunga il giro di un giorno intero. Bisogna scendere, attraversare, risalire dall'altra parte, con tutto il carico.",
+                tiro: { competenze: ["Corde"], soglia: 2 },
+                diramazioni: {
+                  pieno:
+                    "La squadra passa senza perdere tempo, e il margine (se c'è) può essere speso subito per proteggere l'Equipaggiamento nel passaggio successivo.",
+                  costo:
+                    "Passano tutti, ma qualcuno paga: Corpo +1 (una caduta corta, una torsione) oppure Equipaggiamento +1 (un sacco che si strappa contro la roccia) — decide chi ha fatto il tiro.",
+                  fallimento:
+                    "Il passaggio si chiude: una frana, una corda che non regge il primo tentativo. La squadra deve girare al largo. Orologio +1, oltre al conteggio normale."
+                }
+              },
+              {
+                id: "2.2",
+                titolo: "Il campo vuoto",
+                testo:
+                  "Il canalone porta a un accampamento smontato in fretta: un telo lasciato a terra, una radio con la batteria morta, niente corpi, niente sangue. È lo specchio della squadra, qualche giorno prima.\n\nNessun obbligo di tiro se la squadra decide di non toccare la radio: in quel caso si passa oltre senza rischio e senza informazione, ed è una scelta valida quanto le altre.",
+                tiro: { competenze: ["Meccanica", "Strumenti"], soglia: 1 },
+                diramazioni: {
+                  pieno:
+                    "La radio tiene ancora un frammento dell'ultima trasmissione: non parole chiare, ma abbastanza per sapere che l'altra squadra è passata di qui viva, e diretta verso lo stesso punto sul satellite.",
+                  costo:
+                    "La radio parla, ma nel farlo consuma l'ultima batteria buona della squadra — Equipaggiamento +1.",
+                  fallimento:
+                    "La radio resta muta. Nessuna informazione in più: la squadra prosegue alla cieca, sapendo solo la direzione generale."
+                }
+              },
+              {
+                id: "2.3",
+                titolo: "Il posto di blocco",
+                testo:
+                  "Prima di arrivare in vista del sito, la pista attraversa l'unica strada asfaltata della zona — e su quella strada c'è un posto di blocco, non segnato su nessuna mappa del Centro.",
+                tiro: { competenze: ["Lingue", "Trattativa"], soglia: 2 },
+                diramazioni: {
+                  pieno:
+                    "Si passa senza intoppi. Se la squadra ha margine, può spenderlo per sapere qualcosa in più sulla pattuglia (per esempio, che ha già fermato un altro gruppo, pochi giorni prima).",
+                  costo:
+                    "Si passa, ma la Copertura segna una casella — un documento controllato più a lungo del dovuto, una domanda a cui si è risposto un attimo troppo in fretta.",
+                  fallimento:
+                    "La pattuglia trattiene la squadra per ore. Orologio +1, oltre al conteggio normale, e la Copertura segna comunque una casella: la storia ufficiale della squadra è ormai nota a qualcuno che non dovrebbe saperla."
+                }
+              }
+            ]
           }
         ]
       }
