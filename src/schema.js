@@ -390,6 +390,132 @@ const gameConfigs = {
                 }
               }
             ]
+          },
+          {
+            numero: 3,
+            titolo: "La Soglia",
+            chiusura:
+              "Stesso conteggio fisso (1 casella ogni 2 scene). Le tre scene di questo atto, più il Protocollo della Misura (che non conta come una scena a sé ai fini dell'Orologio, ma può far avanzare l'Orologio per conto suo — vedi passo Calibrare), portano l'Orologio tipicamente a 5-6 caselle su 8 a fine atto.",
+            png: [
+              {
+                nome: "L'altra squadra",
+                descrizione:
+                  "Per la prima volta, compare di persona. Il narratore la gioca con gli stessi Sei Mestieri della squadra dei giocatori (improvvisa chi sono usando la tabella dei Mestieri): non è nemica per contratto, ma nemmeno alleata — ha lo stesso obiettivo, e non è detto che ci sia dato per tutti."
+              }
+            ],
+            scene: [
+              {
+                id: "apertura",
+                titolo: "Apertura",
+                testo:
+                  "Da vicino, la forma non assomiglia a nulla che il Centro abbia mostrato in foto. Non ha né porte né segni evidenti: solo una superficie che il terreno intorno non spiega. Il tempo stimato dal Centro per il rilievo completo è breve — meno di quanto servirebbe per capire cosa si sta davvero misurando, ed è esattamente per questo che nessuno ve l'ha spiegato prima.",
+                tiro: null,
+                diramazioni: null
+              },
+              {
+                id: "3.1",
+                titolo: "Il perimetro",
+                testo:
+                  "Prima di installare qualsiasi strumento, bisogna assicurarsi che il sito sia stabile: il terreno intorno alla forma è pieno di crepe sottili, alcune vecchie, altre no.",
+                tiro: { competenze: ["Terreno", "Sangue freddo"], soglia: 2 },
+                diramazioni: {
+                  pieno:
+                    "Il perimetro è sicuro, e la squadra guadagna un margine da spendere subito.",
+                  costo:
+                    "Il perimetro tiene, ma qualcuno ci lascia qualcosa — Corpo +1 (un piede che sprofonda per un attimo, una torsione alla caviglia).",
+                  fallimento:
+                    "Una crepa cede sotto il peso di uno strumento pesante. Equipaggiamento +1, e l'installazione del Protocollo della Misura parte con un dado in meno rispetto al previsto."
+                }
+              },
+              {
+                id: "3.2",
+                titolo: "Lo specchio, di persona",
+                testo:
+                  "L'altra squadra è già lì, o arriva mentre la vostra si sistema. Nessuno spara, nessuno grida: due squadre con lo stesso contratto, davanti alla stessa cosa, devono decidere in pochi minuti se dividersi il tempo, dividersi il sito, o restare ciascuna per conto proprio fingendo che l'altra non esista.",
+                tiro: { competenze: ["Trattativa", "Silenzio"], soglia: 2 },
+                diramazioni: {
+                  pieno:
+                    "Si arriva a un accordo che non costa nulla alla squadra — l'altra squadra si sposta, aspetta il suo turno, o se ne va con un margine di rispetto reciproco. Margine, se avanzato, va speso subito.",
+                  costo:
+                    "L'accordo tiene, ma la squadra deve cedere qualcosa in cambio — Equipaggiamento +1 (una parte del carico passa all'altra squadra) o Copertura +1 (l'altra squadra ora sa qualcosa di voi che non dovrebbe sapere).",
+                  fallimento:
+                    "Non c'è accordo. Le due squadre lavorano fianco a fianco in tensione aperta, e il tempo ne risente — Orologio +1, oltre al conteggio normale."
+                }
+              },
+              {
+                id: "3.3",
+                titolo: "Il Protocollo della Misura",
+                testo:
+                  "Qui si applica per intero il Protocollo della Misura (Installare, Calibrare, Leggere — gestito dai comandi dedicati, non da un tiro di scena normale). È il momento per cui la squadra ha attraversato la vallata e la pista — e il narratore lo tratta con lo stesso passo lento e preciso con cui tratterebbe qualunque altro momento importante, senza accelerare solo perché è il punto centrale della storia.\n\nIl narratore sceglie chi conduce il protocollo (di solito il Rilevatore, se presente, ma qualunque personaggio può farlo). Al termine del passo Leggere, la Discordanza ottenuta va rivelata al tavolo con la stessa cura fredda con cui è scritta, senza aggiungere spiegazioni che il testo non dà.",
+                tiro: null,
+                diramazioni: null
+              }
+            ]
+          },
+          {
+            numero: 4,
+            titolo: "La Chiusura",
+            chiusura:
+              "Ultimo atto: non porta a un Atto 5, porta dritto all'epilogo (vedi scena \"epilogo\"). Se, entrando in questo atto, l'Orologio è già a 8 caselle su 8, il narratore salta le scene sotto e va direttamente all'epilogo, scegliendo la riga che corrisponde allo stato delle tracce in quel momento.",
+            png: [
+              {
+                nome: "La pattuglia di frontiera",
+                descrizione:
+                  "La stessa dell'Atto 2, scena 2.3, se la Copertura della squadra è già stata segnata lì: questa volta il controllo è più attento, perché qualcosa, la volta scorsa, non è tornato del tutto ai loro occhi."
+              },
+              {
+                nome: "Il pilota",
+                descrizione:
+                  "La persona che riporta la squadra fuori dalla zona (auto, furgone, o aereo leggero a seconda di cosa il gruppo ha stabilito all'inizio). Non ha nome nel testo base: fa solo il suo lavoro, e non fa domande — a meno che il narratore non decida che, per una volta, ne faccia una."
+              }
+            ],
+            scene: [
+              {
+                id: "apertura",
+                titolo: "Apertura",
+                testo:
+                  "Il dato è registrato. Il Centro, dall'altra parte di una radio che funziona a intermittenza, ripete solo due parole: \"Uscite subito.\" Non chiede cosa avete trovato. Non lo chiederà nemmeno dopo.",
+                tiro: null,
+                diramazioni: null
+              },
+              {
+                id: "4.1",
+                titolo: "Il ritorno",
+                testo:
+                  "La strada del ritorno è la stessa dell'andata, ma il tempo a disposizione è meno di quanto sembrasse alla partenza. Bisogna scegliere: portare via tutto l'equipaggiamento, o muoversi più in fretta lasciandone indietro una parte.",
+                tiro: { competenze: ["Carico", "Terreno"], soglia: 2 },
+                diramazioni: {
+                  pieno:
+                    "La squadra torna al punto di raccolta in anticipo, con tutto il necessario. Margine, se avanzato, si spende subito.",
+                  costo:
+                    "Arrivano in tempo, ma qualcosa si paga — Corpo +1 (la stanchezza che si fa sentire proprio ora) oppure Equipaggiamento +1 (qualcosa va abbandonato lungo la strada).",
+                  fallimento:
+                    "Il ritardo è concreto. Orologio +1, oltre al conteggio normale — se questo porta l'Orologio a 8/8, si passa subito all'epilogo, saltando la scena 4.2."
+                }
+              },
+              {
+                id: "4.2",
+                titolo: "L'uscita",
+                testo:
+                  "L'ultimo posto di blocco prima della strada libera è lo stesso di sempre, o uno nuovo se il gruppo non è mai passato di lì. Chi lo presidia oggi ha una lista di nomi da controllare, e la Copertura della squadra è l'unica cosa che la separa da quella lista.\n\nSoglia legata alla Copertura attuale della squadra — il narratore la corregge prima di aprire il tiro: soglia 1 se Copertura è a 0-2 caselle, soglia 2 se è a 3, soglia 3 se è a 4 o più (il valore preimpostato qui sotto è quello medio, da confermare o cambiare al tavolo).",
+                tiro: { competenze: ["Lingue", "Trattativa", "Silenzio"], soglia: 2 },
+                diramazioni: {
+                  pieno: "Si passa senza fermarsi. Nessun costo.",
+                  costo:
+                    "Si passa, ma la Copertura segna un'ultima casella — un dettaglio che resterà scritto da qualche parte, anche dopo che la squadra sarà lontana.",
+                  fallimento:
+                    "La squadra viene trattenuta. Il narratore decide se questo significa solo un ritardo (Orologio +1, come sempre) o qualcosa di più serio, da risolvere fuori dalle regole del gioco, a voce, insieme al tavolo."
+                }
+              },
+              {
+                id: "epilogo",
+                titolo: "Epilogo",
+                testo:
+                  "Quando la squadra è fuori — o quando l'Orologio arriva a 8/8 prima che ci arrivi — il narratore legge la riga che corrisponde allo stato delle tracce in quel momento. Si guarda quale traccia, tra le tre, ha più caselle segnate; in caso di parità, il narratore sceglie quella che ha pesato di più nella partita appena giocata.\n\nNESSUNA TRACCIA oltre 2 caselle → USCITA PULITA. La squadra consegna il dato senza che nessuno, a parte loro, sappia cosa è successo davvero sul campo. Il Centro paga, ringrazia con la stessa voce con cui ha dato l'ordine di partire, e chiude il contratto. Nessuno vi richiamerà — o forse è solo questione di tempo.\n\nCORPO più segnato → IL PREZZO SUL CORPO. Il dato arriva, ma qualcuno della squadra porta a casa qualcosa che non guarirà in fretta — non necessariamente grave, ma abbastanza da ricordarlo ogni volta che il tempo cambia. Il Centro non se ne cura: ha già il numero che voleva.\n\nEQUIPAGGIAMENTO più segnato → IL PREZZO SUL MATERIALE. La squadra torna con meno di quanto è partita: strumenti rotti, un veicolo che non arriverà al prossimo contratto senza riparazioni costose. Il dato è comunque buono — ma il prossimo lavoro dovrà pagare anche questo.\n\nCOPERTURA più segnata → IL PREZZO SUL NOME. Il dato arriva al Centro, ma la storia ufficiale della squadra non regge più: qualcuno, da qualche parte — la pattuglia, l'altra squadra, un funzionario che ha trattenuto i documenti un secondo di troppo — sa ora qualcosa che non doveva sapere. Non succede nulla subito. Succederà, ed è tutto quello che si può dire per certo.\n\nOROLOGIO arrivato a 8/8 prima dell'uscita → LA FUGA. Il finale arriva prima che la squadra sia pronta, ovunque si trovi in quel momento: il dato viene comunque registrato (vedi Protocollo della Misura, passo Leggere), ma l'uscita è improvvisata, rumorosa, e nessuno controlla più cosa viene lasciato indietro.\n\nIl numero che la squadra porta via, qualunque Discordanza sia uscita, non torna mai del tutto. Non tocca a questo gioco spiegare perché: quello appartiene ai romanzi.",
+                tiro: null,
+                diramazioni: null
+              }
+            ]
           }
         ]
       }
