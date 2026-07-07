@@ -722,6 +722,7 @@ function scriptPagina() {
   if (autohostParam === '1') {\
     document.getElementById('gm-check').checked = true;\
     document.getElementById('codice-wrap').style.display = 'block';\
+    document.getElementById('scheda-personaggio-wrap').style.display = 'none';\
   }\
 \
   document.getElementById('copy-btn').addEventListener('click', function () {\
@@ -843,26 +844,29 @@ function scriptPagina() {
       return trovato ? trovato.competenzaMestiere : '';\
     }\
 \
+    function popolaSelectCompetenza(sel, escludi) {\
+      var valorePrecedente = sel.value;\
+      sel.innerHTML = '';\
+      configAttuale.competenze.forEach(function (c) {\
+        if (escludi.indexOf(c) !== -1) return;\
+        var opt = document.createElement('option');\
+        opt.value = c;\
+        opt.textContent = c;\
+        sel.appendChild(opt);\
+      });\
+      if (valorePrecedente && escludi.indexOf(valorePrecedente) === -1) {\
+        sel.value = valorePrecedente;\
+      }\
+    }\
+\
     function aggiornaSelectExtra() {\
       var esclusa = competenzaMestiereDi(mestiereSelezionato);\
-      var selezioni = [document.getElementById('competenza-extra-1'), document.getElementById('competenza-extra-2')];\
-      selezioni.forEach(function (sel) {\
-        var valorePrecedente = sel.value;\
-        sel.innerHTML = '';\
-        configAttuale.competenze.forEach(function (c) {\
-          if (c === esclusa) return;\
-          var opt = document.createElement('option');\
-          opt.value = c;\
-          opt.textContent = c;\
-          sel.appendChild(opt);\
-        });\
-        if (valorePrecedente && valorePrecedente !== esclusa) sel.value = valorePrecedente;\
-      });\
       var sel1 = document.getElementById('competenza-extra-1');\
       var sel2 = document.getElementById('competenza-extra-2');\
-      if (sel1.value === sel2.value && sel2.options.length > 1) {\
-        sel2.selectedIndex = sel2.selectedIndex === 0 ? 1 : 0;\
-      }\
+      var val1Attuale = sel1.value;\
+      var val2Attuale = sel2.value;\
+      popolaSelectCompetenza(sel1, [esclusa, val2Attuale].filter(Boolean));\
+      popolaSelectCompetenza(sel2, [esclusa, sel1.value].filter(Boolean));\
     }\
 \
     var pickerMestiere = document.getElementById('mestiere-picker');\
@@ -886,6 +890,8 @@ function scriptPagina() {
       document.getElementById('mestiere-flavor').textContent = mestieriConfig[0].descrizione + ' ' + mestieriConfig[0].rischio;\
     }\
     aggiornaSelectExtra();\
+    document.getElementById('competenza-extra-1').addEventListener('change', aggiornaSelectExtra);\
+    document.getElementById('competenza-extra-2').addEventListener('change', aggiornaSelectExtra);\
 \
     document.getElementById('scambia-dadi-btn').addEventListener('click', function () {\
       var tmp = valoreExtra1;\
@@ -1107,6 +1113,15 @@ function scriptPagina() {
   function aggiornaSchermata(stato) {\
     var sonoSeduto = stato.players.some(function (p) { return p.id === mioId; });\
     var sonoIlGM = stato.gmId === mioId;\
+\
+    if (stato.gmId && !sonoIlGM && !sonoSeduto) {\
+      var gmCheckEl = document.getElementById('gm-check');\
+      if (gmCheckEl && gmCheckEl.checked) {\
+        gmCheckEl.checked = false;\
+        document.getElementById('codice-wrap').style.display = 'none';\
+        document.getElementById('scheda-personaggio-wrap').style.display = 'block';\
+      }\
+    }\
 \
     renderizzaRoster(stato);\
 \
