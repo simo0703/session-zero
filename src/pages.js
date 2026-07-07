@@ -1606,6 +1606,15 @@ function stilePiattaforma() {
   .status.live { background: rgba(217,165,89,0.15); color: var(--brass-bright); }\
   .status.presto { background: rgba(143,168,156,0.15); color: var(--mist); }\
   .status.esterno { background: rgba(180,72,58,0.15); color: #d98a7d; }\
+  .game-card-with-cover { display: flex; gap: 18px; align-items: flex-start; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 12px; padding: 24px; }\
+  .cover-col { flex: 0 0 auto; width: 74px; text-align: center; }\
+  .cover-link { display: block; }\
+  .cover-img { width: 74px; height: auto; border-radius: 4px; box-shadow: 0 8px 18px rgba(0,0,0,0.35); display: block; }\
+  .cover-caption { font-size: 11px; color: var(--mist); line-height: 1.4; margin-top: 8px; }\
+  .game-info { flex: 1; display: block; text-decoration: none; color: inherit; }\
+  .game-info.disabled { cursor: default; opacity: 0.55; }\
+  .game-info h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; margin: 0 0 6px; color: var(--chalk); }\
+  .game-info .tagline { font-style: italic; color: var(--mist); font-size: 14px; margin: 0 0 10px; }\
   footer.bottom { padding: 40px 20px; text-align: center; color: var(--mist-dim); font-size: 12px; border-top: 1px solid rgba(243,238,226,0.08); }\
   .game-hero { padding: 56px 20px 40px; text-align: center; }\
   .game-hero .kicker { font-size: 11px; text-transform: uppercase; letter-spacing: 0.18em; color: var(--brass-bright); }\
@@ -1671,7 +1680,13 @@ export function paginaHome() {
       nome: "La Soglia",
       tagline: "Il rilievo è autorizzato. Il ritorno no.",
       stato: "live",
-      statoLabel: "Disponibile"
+      statoLabel: "Disponibile",
+      libro: {
+        img: "https://sbferrara.org/img/echi.jpg",
+        alt: "Echi del Profondo",
+        href: "https://sbferrara.org/echi",
+        caption: "<strong>Il Ciclo dei Nodi</strong> — la serie che ha portato Petra sulla pagina, e un numero che nei romanzi non torna mai. <strong>La Soglia</strong> porta quella stessa squadra al tavolo: un rilievo autorizzato, un ritorno che nessuno garantisce."
+      }
     },
     {
       href: null,
@@ -1691,14 +1706,36 @@ export function paginaHome() {
 
   var cardsHtml = giochi
     .map(function (g) {
+      var contenutoGioco =
+        "<h3>" + g.nome + "</h3>" +
+        "<p class=\"tagline\">" + g.tagline + "</p>" +
+        "<span class=\"status " + g.stato + "\">" + g.statoLabel + "</span>";
+
+      if (g.libro) {
+        var infoTag = g.href ? "a" : "div";
+        var infoHrefAttr = g.href ? " href=\"" + g.href + "\"" : "";
+        var infoClassi = "game-info" + (g.href ? "" : " disabled");
+        return (
+          "<div class=\"game-card-with-cover\">" +
+            "<div class=\"cover-col\">" +
+              "<a class=\"cover-link\" href=\"" + g.libro.href + "\" target=\"_blank\" rel=\"noopener\">" +
+                "<img class=\"cover-img\" src=\"" + g.libro.img + "\" alt=\"Copertina di " + g.libro.alt + "\">" +
+              "</a>" +
+              "<div class=\"cover-caption\">" + g.libro.caption + "</div>" +
+            "</div>" +
+            "<" + infoTag + " class=\"" + infoClassi + "\"" + infoHrefAttr + ">" +
+              contenutoGioco +
+            "</" + infoTag + ">" +
+          "</div>"
+        );
+      }
+
       var tag = g.href ? "a" : "div";
       var hrefAttr = g.href ? " href=\"" + g.href + "\"" : "";
       var classi = "game-card" + (g.href ? "" : " disabled");
       return (
         "<" + tag + " class=\"" + classi + "\"" + hrefAttr + ">" +
-          "<h3>" + g.nome + "</h3>" +
-          "<p class=\"tagline\">" + g.tagline + "</p>" +
-          "<span class=\"status " + g.stato + "\">" + g.statoLabel + "</span>" +
+          contenutoGioco +
         "</" + tag + ">"
       );
     })
