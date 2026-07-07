@@ -290,9 +290,13 @@ function stileCss() {
     .layout-sidebar { order: 2; }\
     .layout-main { order: 1; }\
   }\
-  .topbar { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }\
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }\
+  .brand-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\
   .brand { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; }\
   .brand span { color: var(--brass-bright); }\
+  .book-badge { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--mist); font-size: 11px; padding: 4px 10px 4px 4px; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; background: rgba(0,0,0,0.18); }\
+  .book-badge:hover { border-color: var(--brass); color: var(--brass-bright); }\
+  .book-badge img { width: 22px; height: auto; border-radius: 2px; display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }\
   .room-info { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--mist); }\
   .room-code { background: rgba(0,0,0,0.25); border: 1px solid var(--mist-dim); padding: 5px 10px; border-radius: 4px; color: var(--brass-bright); letter-spacing: 0.08em; }\
   .copy-btn { background: none; border: 1px solid var(--mist-dim); color: var(--mist); padding: 5px 10px; border-radius: 4px; font-family: inherit; font-size: 12px; cursor: pointer; }\
@@ -387,7 +391,13 @@ function markupPagina() {
   return "\
   <div class=\"stage\">\
     <div class=\"topbar\">\
-      <div class=\"brand\">SESSION <span>ZERO</span></div>\
+      <div class=\"brand-group\">\
+        <div class=\"brand\">SESSION <span>ZERO</span></div>\
+        <a class=\"book-badge\" id=\"book-badge\" href=\"#\" target=\"_blank\" rel=\"noopener\" style=\"display:none\">\
+          <img id=\"book-badge-img\" src=\"\" alt=\"\">\
+          <span id=\"book-badge-label\"></span>\
+        </a>\
+      </div>\
       <div class=\"room-info\">\
         <span>Stanza</span>\
         <span class=\"room-code\" id=\"room-code\">------</span>\
@@ -943,6 +953,17 @@ function scriptPagina() {
       'Voglio essere ' + configAttuale.terminologia.gm;\
     document.getElementById('gm-toggle-sub').textContent =\
       'Guiderai la partita: apri le scene, gestisci ' + configAttuale.terminologia.orologio + '.';\
+\
+    var badge = document.getElementById('book-badge');\
+    if (configAttuale.libro) {\
+      document.getElementById('book-badge-img').src = configAttuale.libro.img;\
+      document.getElementById('book-badge-img').alt = configAttuale.libro.alt || '';\
+      document.getElementById('book-badge-label').textContent = configAttuale.libro.label || 'Il libro';\
+      badge.href = configAttuale.libro.href;\
+      badge.style.display = 'inline-flex';\
+    } else {\
+      badge.style.display = 'none';\
+    }\
   }\
 \
   document.getElementById('gm-check').addEventListener('change', function () {\
@@ -1621,12 +1642,12 @@ function stilePiattaforma() {
   .status.live { background: rgba(217,165,89,0.15); color: var(--brass-bright); }\
   .status.presto { background: rgba(143,168,156,0.15); color: var(--mist); }\
   .status.esterno { background: rgba(180,72,58,0.15); color: #d98a7d; }\
-  .game-card-with-cover { display: flex; gap: 18px; align-items: flex-start; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 12px; padding: 24px; }\
-  .cover-col { flex: 0 0 auto; width: 74px; text-align: center; }\
-  .cover-link { display: block; }\
-  .cover-img { width: 74px; height: auto; border-radius: 4px; box-shadow: 0 8px 18px rgba(0,0,0,0.35); display: block; }\
-  .cover-caption { font-size: 11px; color: var(--mist); line-height: 1.4; margin-top: 8px; }\
-  .game-info { flex: 1; display: block; text-decoration: none; color: inherit; }\
+  .game-card-with-cover { display: flex; gap: 16px; align-items: flex-start; background: rgba(243,238,226,0.04); border: 1px solid rgba(243,238,226,0.1); border-radius: 12px; padding: 24px; }\
+  .cover-link { flex: 0 0 auto; display: block; }\
+  .cover-img { width: 64px; height: auto; border-radius: 4px; box-shadow: 0 8px 18px rgba(0,0,0,0.35); display: block; }\
+  .cover-caption { flex: 0 0 170px; font-size: 12px; color: var(--mist); line-height: 1.5; }\
+  .cover-caption strong { color: var(--chalk); }\
+  .game-info { flex: 1; display: block; text-decoration: none; color: inherit; min-width: 0; }\
   .game-info.disabled { cursor: default; opacity: 0.55; }\
   .game-info h3 { font-family: 'Bricolage Grotesque', sans-serif; font-size: 20px; margin: 0 0 6px; color: var(--chalk); }\
   .game-info .tagline { font-style: italic; color: var(--mist); font-size: 14px; margin: 0 0 10px; }\
@@ -1732,12 +1753,10 @@ export function paginaHome() {
         var infoClassi = "game-info" + (g.href ? "" : " disabled");
         return (
           "<div class=\"game-card-with-cover\">" +
-            "<div class=\"cover-col\">" +
-              "<a class=\"cover-link\" href=\"" + g.libro.href + "\" target=\"_blank\" rel=\"noopener\">" +
-                "<img class=\"cover-img\" src=\"" + g.libro.img + "\" alt=\"Copertina di " + g.libro.alt + "\">" +
-              "</a>" +
-              "<div class=\"cover-caption\">" + g.libro.caption + "</div>" +
-            "</div>" +
+            "<a class=\"cover-link\" href=\"" + g.libro.href + "\" target=\"_blank\" rel=\"noopener\">" +
+              "<img class=\"cover-img\" src=\"" + g.libro.img + "\" alt=\"Copertina di " + g.libro.alt + "\">" +
+            "</a>" +
+            "<div class=\"cover-caption\">" + g.libro.caption + "</div>" +
             "<" + infoTag + " class=\"" + infoClassi + "\"" + infoHrefAttr + ">" +
               contenutoGioco +
             "</" + infoTag + ">" +

@@ -123,6 +123,16 @@ const gameConfigs = {
       gmMaiuscolo: "Il narratore",
       orologio: "l'Orologio"
     },
+    // Riferimento discreto al romanzo collegato, mostrato come piccolo
+    // badge nella topbar del tavolo di gioco (non nella pagina di gioco
+    // vera e propria) — testo minimo apposta, la versione estesa con la
+    // descrizione vive solo nella card del catalogo su pages.js.
+    libro: {
+      img: "https://sbferrara.org/img/echi.jpg",
+      alt: "Echi del Profondo",
+      href: "https://sbferrara.org/echi",
+      label: "Il libro"
+    },
     competenze: [
       "Terreno", "Corde", "Strumenti", "Lingue", "Sangue freddo", "Carico",
       "Acqua", "Meccanica", "Medicina", "Orientamento", "Trattativa", "Silenzio"
