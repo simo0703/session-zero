@@ -234,13 +234,14 @@ export class GameRoom {
       if (!vuoleEssereHost) {
         const config =
           gameConfigs[this.stato.gameId] || gameConfigs["la-soglia"];
-        schedaPersonaggio = costruisciSchedaPersonaggio(msg, config);
+        const risultato = costruisciSchedaPersonaggio(msg, config);
+        schedaPersonaggio = risultato.scheda;
         if (!schedaPersonaggio) {
           socket.send(
             JSON.stringify({
               type: "errore",
               messaggio:
-                "Scheda personaggio incompleta: scegli un Mestiere e due competenze diverse (3 dadi da distribuire, 2 e 1).",
+                "Scheda personaggio incompleta. " + risultato.motivo,
             })
           );
           return;
@@ -868,7 +869,13 @@ export class GameRoom {
 function costruisciSchedaPersonaggio(msg, config) {
   const mestieri = config.mestieri || [];
   const mestiereScelto = mestieri.find((m) => m.id === msg.mestiere);
-  if (!mestiereScelto) return null;
+  if (!mestiereScelto) {
+    return {
+      scheda: null,
+      motivo:
+        "Mestiere non riconosciuto (ricevuto: \"" + (msg.mestiere || "vuoto") + "\").",
+    };
+  }
 
   const competenzeValide = config.competenze || [];
   const extra1 = msg.competenzaExtra1;
@@ -877,17 +884,32 @@ function costruisciSchedaPersonaggio(msg, config) {
   const valore2 = parseInt(msg.valoreExtra2, 10);
 
   if (!competenzeValide.includes(extra1) || !competenzeValide.includes(extra2)) {
-    return null;
+    return {
+      scheda: null,
+      motivo:
+        "Competenza non valida (ricevute: \"" + extra1 + "\" e \"" + extra2 + "\").",
+    };
   }
-  if (extra1 === extra2) return null;
+  if (extra1 === extra2) {
+    return { scheda: null, motivo: "Le due competenze extra sono uguali (\"" + extra1 + "\")." };
+  }
   if (
     extra1 === mestiereScelto.competenzaMestiere ||
     extra2 === mestiereScelto.competenzaMestiere
   ) {
-    return null;
+    return {
+      scheda: null,
+      motivo:
+        "Una delle competenze extra (\"" + extra1 + "\", \"" + extra2 + "\") coincide con la Competenza di Mestiere di " +
+        mestiereScelto.nome + " (\"" + mestiereScelto.competenzaMestiere + "\").",
+    };
   }
   if (![1, 2].includes(valore1) || ![1, 2].includes(valore2) || valore1 + valore2 !== 3) {
-    return null;
+    return {
+      scheda: null,
+      motivo:
+        "Split dei dadi non valido (ricevuto: " + valore1 + " e " + valore2 + ", deve essere 2 e 1).",
+    };
   }
 
   const competenze = {};
@@ -896,10 +918,13 @@ function costruisciSchedaPersonaggio(msg, config) {
   competenze[extra2] = valore2;
 
   return {
-    mestiere: mestiereScelto.id,
-    competenze,
-    difetto: (msg.difetto || "").trim().slice(0, 140),
-    ragione: (msg.ragione || "").trim().slice(0, 140),
+    scheda: {
+      mestiere: mestiereScelto.id,
+      competenze,
+      difetto: (msg.difetto || "").trim().slice(0, 140),
+      ragione: (msg.ragione || "").trim().slice(0, 140),
+    },
+    motivo: null,
   };
 }
 
