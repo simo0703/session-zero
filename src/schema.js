@@ -34,7 +34,7 @@ function creaStatoIniziale(roomCode, gameId) {
     // Chi guida la partita (role "gm") non ha mestiere/competenze/difetto/ragione:
     // narra, non gioca una scheda.
 
-    gmId: null, // id del player che guida la partita (narratore / Censore, secondo il gioco)
+    gmId: null, // id del player che guida la partita (il nome del ruolo dipende dal gioco, via gameConfig)
 
     // L'ultimo suggerimento di diramazione mostrato al narratore (Design
     // Bible §9), persistente finché non arriva un tiro successivo su una
