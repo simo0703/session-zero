@@ -281,22 +281,29 @@ function stileCss() {
     padding: 32px 16px 60px;\
   }\
   .stage { width: 100%; max-width: 760px; margin: 0 auto; }\
-  .layout-grid { display: grid; grid-template-columns: 1fr 320px; gap: 20px; max-width: 1100px; margin: 0 auto; align-items: start; }\
+  .layout-grid { display: grid; grid-template-columns: 130px 1fr 320px; gap: 20px; max-width: 1220px; margin: 0 auto; align-items: start; }\
+  .layout-book { min-width: 0; order: 0; }\
   .layout-main { min-width: 0; order: 1; }\
   .layout-sidebar { min-width: 0; order: 2; }\
   .layout-main .stage, .layout-sidebar .stage { max-width: none; margin: 0 0 18px; }\
+  @media (max-width: 1060px) {\
+    .layout-grid { grid-template-columns: 1fr 320px; }\
+    .layout-book { grid-column: 1 / -1; order: 0; }\
+  }\
   @media (max-width: 860px) {\
     .layout-grid { grid-template-columns: 1fr; }\
+    .layout-book { order: 0; }\
     .layout-sidebar { order: 2; }\
     .layout-main { order: 1; }\
   }\
   .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }\
-  .brand-group { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }\
   .brand { font-family: 'Bricolage Grotesque', sans-serif; font-weight: 700; font-size: 22px; }\
   .brand span { color: var(--brass-bright); }\
-  .book-badge { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; color: var(--mist); font-size: 11px; padding: 4px 10px 4px 4px; border: 1px solid rgba(255,255,255,0.08); border-radius: 20px; background: rgba(0,0,0,0.18); }\
-  .book-badge:hover { border-color: var(--brass); color: var(--brass-bright); }\
-  .book-badge img { width: 22px; height: auto; border-radius: 2px; display: block; box-shadow: 0 2px 6px rgba(0,0,0,0.4); }\
+  .book-col-card { display: block; text-decoration: none; background: rgba(0,0,0,0.18); border: 1px solid rgba(255,255,255,0.07); border-radius: 14px; padding: 16px 12px; text-align: center; }\
+  .book-col-card:hover { border-color: var(--brass); }\
+  .book-col-card img { width: 100%; max-width: 106px; height: auto; border-radius: 4px; box-shadow: 0 8px 18px rgba(0,0,0,0.4); display: block; margin: 0 auto 10px; }\
+  .book-col-card .label { font-size: 12px; color: var(--mist); }\
+  .book-col-card:hover .label { color: var(--brass-bright); }\
   .room-info { display: flex; align-items: center; gap: 10px; font-family: 'JetBrains Mono', monospace; font-size: 13px; color: var(--mist); }\
   .room-code { background: rgba(0,0,0,0.25); border: 1px solid var(--mist-dim); padding: 5px 10px; border-radius: 4px; color: var(--brass-bright); letter-spacing: 0.08em; }\
   .copy-btn { background: none; border: 1px solid var(--mist-dim); color: var(--mist); padding: 5px 10px; border-radius: 4px; font-family: inherit; font-size: 12px; cursor: pointer; }\
@@ -312,7 +319,7 @@ function stileCss() {
   .dichiarazione-riga:last-child { border-bottom: none; }\
   .dichiarazione-riga strong { color: var(--brass-bright); }\
   .table-wrap { background: var(--walnut-dark); border-radius: 20px; padding: 40px 24px 32px; box-shadow: inset 0 0 0 1px rgba(255,255,255,0.03), 0 20px 40px rgba(0,0,0,0.35); margin-bottom: 18px; }\
-  .table { position: relative; width: 100%; max-width: 460px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle at 42% 38%, rgba(255,255,255,0.05), transparent 55%), radial-gradient(circle, var(--felt) 0%, var(--felt-dark) 100%); box-shadow: inset 0 0 0 8px var(--walnut), inset 0 0 40px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.4); }\
+  .table { position: relative; width: 100%; max-width: 400px; aspect-ratio: 1; margin: 0 auto; border-radius: 50%; background: radial-gradient(circle at 42% 38%, rgba(255,255,255,0.05), transparent 55%), radial-gradient(circle, var(--felt) 0%, var(--felt-dark) 100%); box-shadow: inset 0 0 0 8px var(--walnut), inset 0 0 40px rgba(0,0,0,0.5), 0 10px 30px rgba(0,0,0,0.4); }\
   .seat { position: absolute; width: 74px; height: 74px; border-radius: 50%; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; transform: translate(-50%, -50%); }\
   .seat .ring { width: 54px; height: 54px; border-radius: 50%; border: 2px dashed var(--mist-dim); display: flex; align-items: center; justify-content: center; font-size: 20px; color: var(--mist-dim); background: rgba(0,0,0,0.15); }\
   .seat.filled .ring { border: 2px solid var(--brass); background: var(--brass); color: var(--walnut-dark); font-weight: 700; box-shadow: 0 0 18px rgba(192,138,62,0.55); }\
@@ -391,13 +398,7 @@ function markupPagina() {
   return "\
   <div class=\"stage\">\
     <div class=\"topbar\">\
-      <div class=\"brand-group\">\
-        <div class=\"brand\">SESSION <span>ZERO</span></div>\
-        <a class=\"book-badge\" id=\"book-badge\" href=\"#\" target=\"_blank\" rel=\"noopener\" style=\"display:none\">\
-          <img id=\"book-badge-img\" src=\"\" alt=\"\">\
-          <span id=\"book-badge-label\"></span>\
-        </a>\
-      </div>\
+      <div class=\"brand\">SESSION <span>ZERO</span></div>\
       <div class=\"room-info\">\
         <span>Stanza</span>\
         <span class=\"room-code\" id=\"room-code\">------</span>\
@@ -408,6 +409,12 @@ function markupPagina() {
   </div>\
 \
   <div class=\"layout-grid\">\
+  <div class=\"layout-book\" id=\"layout-book\" style=\"display:none\">\
+    <a class=\"book-col-card\" id=\"book-badge\" href=\"#\" target=\"_blank\" rel=\"noopener\">\
+      <img id=\"book-badge-img\" src=\"\" alt=\"\">\
+      <span class=\"label\" id=\"book-badge-label\"></span>\
+    </a>\
+  </div>\
   <div class=\"layout-sidebar\">\
 \
   <div class=\"stage\" id=\"chiamata-wrap\">\
@@ -955,14 +962,15 @@ function scriptPagina() {
       'Guiderai la partita: apri le scene, gestisci ' + configAttuale.terminologia.orologio + '.';\
 \
     var badge = document.getElementById('book-badge');\
+    var colonnaLibro = document.getElementById('layout-book');\
     if (configAttuale.libro) {\
       document.getElementById('book-badge-img').src = configAttuale.libro.img;\
       document.getElementById('book-badge-img').alt = configAttuale.libro.alt || '';\
       document.getElementById('book-badge-label').textContent = configAttuale.libro.label || 'Il libro';\
       badge.href = configAttuale.libro.href;\
-      badge.style.display = 'inline-flex';\
+      colonnaLibro.style.display = 'block';\
     } else {\
-      badge.style.display = 'none';\
+      colonnaLibro.style.display = 'none';\
     }\
   }\
 \
@@ -1716,7 +1724,7 @@ export function paginaHome() {
       nome: "La Soglia",
       tagline: "Il rilievo è autorizzato. Il ritorno no.",
       stato: "live",
-      statoLabel: "Disponibile",
+      statoLabel: "Gioca ora",
       libro: {
         img: "https://sbferrara.org/img/echi.jpg",
         alt: "Echi del Profondo",
