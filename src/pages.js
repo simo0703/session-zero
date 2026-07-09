@@ -1880,7 +1880,7 @@ export function paginaGioco(dati) {
     .map(function (m) {
       var etichetta = etichetteTipo[m.tipo] || "";
       return (
-        "<a class=\"materiale-card\" href=\"/scarica/" + m.id + "\">" +
+        "<a class=\"materiale-card\" href=\"#\" data-materiale-id=\"" + m.id + "\">" +
           "<span class=\"materiale-titolo\">" + m.titolo + "</span>" +
           (etichetta ? "<span class=\"materiale-tag\">" + etichetta + "</span>" : "") +
         "</a>"
@@ -1889,7 +1889,7 @@ export function paginaGioco(dati) {
     .join("");
 
   var sezioneMateriali = materialiHtml
-    ? "<section><h2 class=\"section-title\">Vuoi giocarlo dal vivo?</h2><div class=\"wrap\"><p class=\"sezione-intro\">Scarica quello che ti serve per giocare a tavolino, senza computer.</p><div class=\"materiali-list\">" + materialiHtml + "</div></div></section>"
+    ? "<section><h2 class=\"section-title\">Vuoi giocarlo dal vivo?</h2><div class=\"wrap\"><p class=\"sezione-intro\">Scarica quello che ti serve per giocare a tavolino, senza computer. Serve il codice stampato nel tuo libro — lo stesso che apre la stanza online, qui sotto.</p><div class=\"field\" style=\"max-width:320px;margin-bottom:14px;\"><label>Codice del libro</label><input id=\"codice-materiali\" type=\"text\" placeholder=\"Es. AB3D9F2K\"></div><div class=\"materiali-list\">" + materialiHtml + "</div></div></section>"
     : "";
 
   return (
@@ -1939,6 +1939,19 @@ export function paginaGioco(dati) {
         "var room = document.getElementById('codice-stanza').value.trim().toUpperCase();" +
         "if (!room) { return; }" +
         "window.location.href = '/?room=' + room + '&game=" + dati.id + "';" +
+      "});" +
+      "document.querySelectorAll('.materiale-card[data-materiale-id]').forEach(function (link) {" +
+        "link.addEventListener('click', function (e) {" +
+          "e.preventDefault();" +
+          "var campoCodice = document.getElementById('codice-materiali');" +
+          "var codice = campoCodice ? campoCodice.value.trim() : '';" +
+          "if (!codice) {" +
+            "alert('Inserisci prima il codice stampato nel tuo libro.');" +
+            "if (campoCodice) { campoCodice.focus(); }" +
+            "return;" +
+          "}" +
+          "window.location.href = '/scarica/' + link.getAttribute('data-materiale-id') + '?codice=' + encodeURIComponent(codice);" +
+        "});" +
       "});" +
     "</script>" +
     "</body></html>"

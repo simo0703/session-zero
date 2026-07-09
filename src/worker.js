@@ -1131,15 +1131,36 @@ async function gestisciEliminaMateriale(request, env) {
 // Route pubblica: scarica un materiale dato il suo id. Nessuna password:
 // una volta pubblicato, il materiale è pensato per essere scaricabile da
 // chiunque arrivi dalla pagina del gioco.
-async function gestisciScaricaMateriale(id, env) {
+async function gestisciScaricaMateriale(id, env, codiceInserito) {
   const riga = await env.DB.prepare(
-    "SELECT filename, r2_key, content_type FROM materiali WHERE id = ?"
+    "SELECT filename, r2_key, content_type, game_id FROM materiali WHERE id = ?"
   )
     .bind(id)
     .first();
 
   if (!riga) {
     return new Response("Materiale non trovato.", { status: 404 });
+  }
+
+  // I materiali scaricabili richiedono lo stesso codice che sblocca il
+  // ruolo di narratore per quel gioco (tabella access_codes, filtrata per
+  // game_id) — nessun download libero. Coerente col §6 del Design Bible
+  // Digitale: il gioco online è il bonus di chi compra il cartaceo, e
+  // questo vale anche per i materiali scaricabili collegati.
+  const codice = (codiceInserito || "").trim().toUpperCase();
+  if (!codice) {
+    return new Response(
+      "Inserisci il codice stampato nel tuo libro per scaricare questo materiale.",
+      { status: 401 }
+    );
+  }
+  const codiceRiga = await env.DB.prepare(
+    "SELECT code FROM access_codes WHERE code = ? AND game_id = ? AND active = 1"
+  )
+    .bind(codice, riga.game_id)
+    .first();
+  if (!codiceRiga) {
+    return new Response("Codice non valido per questo gioco.", { status: 403 });
   }
 
   const oggetto = await env.MATERIALI.get(riga.r2_key);
@@ -1248,10 +1269,11 @@ export default {
       return gestisciEliminaMateriale(request, env);
     }
 
-    // Route pubblica di download: /scarica/123
+    // Route pubblica di download: /scarica/123?codice=XXXX
     if (url.pathname.startsWith("/scarica/")) {
       const id = url.pathname.split("/")[2];
-      return gestisciScaricaMateriale(id, env);
+      const codice = url.searchParams.get("codice");
+      return gestisciScaricaMateriale(id, env, codice);
     }
 
     // Tutto il resto: la pagina della lobby
