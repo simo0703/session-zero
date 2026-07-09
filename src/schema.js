@@ -198,7 +198,12 @@ const gameConfigs = {
           "Il passo rallenta senza che lo si decida",
           "Le dita non sentono più la corda, solo il suo peso",
           "Il corpo smette di rispondere agli ordini: qualcun altro deve deciderne il passo"
-        ]
+        ],
+        // Effetto speciale (§7 del regolamento): a soglia raggiunta, il motore
+        // mostra solo un promemoria — non applica nulla in automatico, resta
+        // una decisione del narratore quando imposta numDadi.
+        sogliaAvviso: 4,
+        avviso: "-1 dado su tutte le azioni fisiche"
       },
       equipaggiamento: {
         label: "Equipaggiamento",
@@ -220,7 +225,9 @@ const gameConfigs = {
           "Il capoposto tiene i documenti un secondo di troppo prima di restituirli",
           "Un'auto senza insegne passa due volte sulla stessa strada",
           "Qualcuno vi sta cercando — e sa dove"
-        ]
+        ],
+        sogliaAvviso: 4,
+        avviso: "checkpoint e controlli molto più difficili per la squadra"
       }
     },
     orologioSoglia: 8,

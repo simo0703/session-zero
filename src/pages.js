@@ -391,6 +391,7 @@ function stileCss() {
   .roster-misura { display: flex; gap: 3px; margin-top: 4px; }\
   .roster-misura .seg { width: 8px; height: 8px; border-radius: 2px; background: rgba(255,255,255,0.1); }\
   .roster-misura .seg.filled { background: var(--ember); }\
+  .roster-avviso { font-size: 11px; color: var(--ember); margin-top: 3px; cursor: help; }\
   ";
 }
 
@@ -674,6 +675,10 @@ function markupPagina() {
       <p class=\"panel-title\">Proponi un'azione</p>\
       <p class=\"roll-status\">Scrivi cosa vuoi tentare — il narratore la vedrà e deciderà se e come richiedere un tiro.</p>\
       <textarea class=\"gm-textarea\" id=\"approccio-input\" placeholder=\"Es. Provo a scalare la parete usando la corda nuova…\" style=\"min-height:60px;\"></textarea>\
+      <div class=\"field\" style=\"margin-top:8px;\">\
+        <label>Con quale delle tue competenze pensi di farlo? (facoltativo)</label>\
+        <select id=\"approccio-competenza\"><option value=\"\">Decide il narratore</option></select>\
+      </div>\
       <button class=\"btn-primary\" id=\"dichiara-approccio-btn\">Proponi azione</button>\
       <p class=\"roll-status\" id=\"approccio-conferma\" style=\"display:none;margin-top:8px;\">Azione proposta. Il narratore la vedrà.</p>\
     </div>\
@@ -1033,7 +1038,8 @@ function scriptPagina() {
   document.getElementById('dichiara-approccio-btn').addEventListener('click', function () {\
     var testo = document.getElementById('approccio-input').value.trim();\
     if (!testo) { alert('Scrivi come affronti l\\'ostacolo prima di dichiararlo.'); return; }\
-    socket.send(JSON.stringify({ type: 'dichiara_approccio', testo: testo }));\
+    var competenzaSuggerita = document.getElementById('approccio-competenza').value;\
+    socket.send(JSON.stringify({ type: 'dichiara_approccio', testo: testo, competenza: competenzaSuggerita }));\
     document.getElementById('approccio-conferma').style.display = 'block';\
   });\
 \
@@ -1124,6 +1130,19 @@ function scriptPagina() {
     document.getElementById('scheda-difetto').textContent = p.difetto || '';\
     document.getElementById('scheda-ragione-riga').style.display = p.ragione ? 'block' : 'none';\
     document.getElementById('scheda-ragione').textContent = p.ragione || '';\
+\
+    var selApproccioComp = document.getElementById('approccio-competenza');\
+    var valorePrecedenteApproccio = selApproccioComp.value;\
+    selApproccioComp.innerHTML = '<option value=\"\">Decide il narratore</option>';\
+    if (p.competenze) {\
+      Object.keys(p.competenze).forEach(function (c) {\
+        var opt = document.createElement('option');\
+        opt.value = c;\
+        opt.textContent = c + ' (' + p.competenze[c] + ')';\
+        selApproccioComp.appendChild(opt);\
+      });\
+    }\
+    if (valorePrecedenteApproccio) selApproccioComp.value = valorePrecedenteApproccio;\
   }\
 \
   function renderizzaChat(messaggi) {\
@@ -1270,6 +1289,9 @@ function scriptPagina() {
       if (miaDichiarazione && document.activeElement !== document.getElementById('approccio-input')) {\
         document.getElementById('approccio-input').value = miaDichiarazione.testo;\
         document.getElementById('approccio-conferma').style.display = 'block';\
+        if (miaDichiarazione.competenzaSuggerita) {\
+          document.getElementById('approccio-competenza').value = miaDichiarazione.competenzaSuggerita;\
+        }\
       }\
     } else {\
       pannelloApproccio.style.display = 'none';\
@@ -1300,13 +1322,19 @@ function scriptPagina() {
           var voce = dichiarazioni[id];\
           var riga = document.createElement('div');\
           riga.className = 'dichiarazione-riga';\
-          riga.innerHTML = '<strong>' + voce.nickname + '</strong>: ' + voce.testo +\
-            ' <button type=\"button\" class=\"copy-btn\" style=\"margin-left:8px;\" data-giocatore=\"' + id + '\">Prepara tiro</button>';\
+          var etichettaCompetenza = voce.competenzaSuggerita ? ' — propone <em>' + voce.competenzaSuggerita + '</em>' : '';\
+          riga.innerHTML = '<strong>' + voce.nickname + '</strong>: ' + voce.testo + etichettaCompetenza +\
+            ' <button type=\"button\" class=\"copy-btn\" style=\"margin-left:8px;\" data-giocatore=\"' + id +\
+            '\" data-competenza=\"' + (voce.competenzaSuggerita || '') + '\">Prepara tiro</button>';\
           dichiarazioniLista.appendChild(riga);\
         });\
         dichiarazioniLista.querySelectorAll('button[data-giocatore]').forEach(function (btn) {\
           btn.addEventListener('click', function () {\
             document.getElementById('tiro-giocatore').value = btn.getAttribute('data-giocatore');\
+            var competenzaProposta = btn.getAttribute('data-competenza');\
+            if (competenzaProposta) {\
+              document.getElementById('tiro-competenza').value = competenzaProposta;\
+            }\
             document.getElementById('tiro-numdadi').focus();\
           });\
         });\
@@ -1593,13 +1621,19 @@ function scriptPagina() {
       (configAttuale.mestieri || []).forEach(function (m) { if (m.id === p.mestiere) mestiereInfo = m; });\
       var mestiereNome = mestiereInfo ? mestiereInfo.nome : '';\
       var tracceHtml = Object.keys(configAttuale.tracce).map(function (chiave) {\
+        var infoTraccia = configAttuale.tracce[chiave];\
         var valore = p.tracce ? (p.tracce[chiave] || 0) : 0;\
         var segmenti = '';\
         for (var s = 0; s < 6; s++) {\
           segmenti += '<div class=\"seg' + (s < valore ? ' filled' : '') + '\"></div>';\
         }\
-        return '<div style=\"margin-top:4px;\"><span class=\"roster-tag\">' + configAttuale.tracce[chiave].label +\
-          '</span><div class=\"roster-misura\">' + segmenti + '</div></div>';\
+        var avvisoHtml = '';\
+        if (infoTraccia.sogliaAvviso && valore >= infoTraccia.sogliaAvviso) {\
+          avvisoHtml = '<div class=\"roster-avviso\" title=\"Soglia raggiunta: il narratore valuta l\\'effetto, non è automatico\">\\u26A0 ' +\
+            infoTraccia.avviso + '</div>';\
+        }\
+        return '<div style=\"margin-top:4px;\"><span class=\"roster-tag\">' + infoTraccia.label +\
+          '</span><div class=\"roster-misura\">' + segmenti + '</div>' + avvisoHtml + '</div>';\
       }).join('');\
       row.innerHTML =\
         '<div style=\"width:100%;\"><div><span>' + nomeConTu + '</span><span class=\"roster-tag\" style=\"margin-left:8px;\">' +\

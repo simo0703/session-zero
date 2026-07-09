@@ -352,9 +352,22 @@ export class GameRoom {
       if (!giocatore || this.stato.status !== "playing") return;
 
       const testo = (msg.testo || "").trim().slice(0, 300);
+      // La competenza suggerita è facoltativa e serve solo a velocizzare
+      // il lavoro del narratore quando prepara il tiro: deve essere una
+      // delle competenze che il giocatore possiede davvero sulla propria
+      // scheda, altrimenti viene ignorata. Resta comunque un suggerimento:
+      // il narratore decide sempre lui quale competenza usare (§5).
+      const competenzaProposta =
+        typeof msg.competenza === "string" ? msg.competenza.trim() : "";
+      const competenzaSuggerita =
+        giocatore.competenze &&
+        Object.prototype.hasOwnProperty.call(giocatore.competenze, competenzaProposta)
+          ? competenzaProposta
+          : "";
       this.stato.scenaCorrente.dichiarazioni[playerId] = {
         nickname: giocatore.nickname,
         testo,
+        competenzaSuggerita,
       };
 
       this.salvaStato();
