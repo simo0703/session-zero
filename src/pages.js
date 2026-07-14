@@ -1875,7 +1875,28 @@ const presentazioneCorsa = {
     "Ognuno sceglie il suo ruolo, e la corsa comincia."
   ],
   dovePortera: "Cinque episodi, cinque momenti veri: Torino 1836, dove tutto comincia. Milano 1848, le Cinque Giornate. Il Carso e il Piave, 1915-1918, la Grande Guerra. Un'emergenza civile, quando i bersaglieri corrono per aiutare. Una missione moderna, la corsa di oggi. Potete giocarne uno o attraversarli tutti.",
-  dalVivo: "Il gioco funziona anche attorno a un tavolo vero, con carta, matita e un dado. Le schede dei ruoli, la guida rapida (una pagina, si impara in dieci minuti) e il regolamento completo saranno presto qui da scaricare e stampare.",
+  dalVivo: "Per giocare al tavolo, senza computer, bastano tre fogli. Scaricali, stampali, e sei pronto.",
+  dalVivoChiusura: "Serve anche solo un dado a sei facce.",
+  materialiCorsa: [
+    {
+      titolo: "Regolamento completo",
+      tag: "PDF · 10 pagine",
+      descrizione: "Tutte le regole del gioco, spiegate una per una. Lo legge chi organizza la partita, prima di giocare.",
+      link: "https://la-corsa-invisibile.roomzero.workers.dev/materiali/regolamento-la-corsa-invisibile.pdf"
+    },
+    {
+      titolo: "Guida rapida",
+      tag: "PDF · 1 pagina",
+      descrizione: "Il foglio da tenere in mezzo al tavolo durante la partita. C'è scritto come si tira il dado e cosa succede. Basta questo per giocare.",
+      link: "https://la-corsa-invisibile.roomzero.workers.dev/materiali/guida-rapida-la-corsa-invisibile.pdf"
+    },
+    {
+      titolo: "Schede dei ruoli",
+      tag: "PDF · 2 pagine",
+      descrizione: "Il foglio da tavolo e le quattro schede: Esploratore, Incursore, Fanfara, Custode. Una scheda a testa.",
+      link: "https://la-corsa-invisibile.roomzero.workers.dev/materiali/schede-la-corsa-invisibile.pdf"
+    }
+  ],
   laStoria: "Il gioco è figlio dei romanzi di Simone Badii — Il ragazzo che correva nel tempo e I passi tornano — che raccontano 190 anni di storia dei bersaglieri. Non serve averli letti per giocare. Ma se dopo aver giocato vi viene voglia di sapere come continua, sapete dove cercare.",
   imgSquadra: "https://la-corsa-invisibile.roomzero.workers.dev/img/squadra-corsa.webp",
   imgCustode: "https://la-corsa-invisibile.roomzero.workers.dev/img/custode-ragazzo.webp",
@@ -1896,7 +1917,9 @@ const stileCorsa =
   ".corsa-media-riga{display:flex;gap:28px;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:6px}" +
   ".corsa-media-fig{flex:0 1 210px;text-align:center}" +
   ".corsa-img-lato{display:block;width:100%;max-width:210px;height:auto;margin:0 auto}" +
-  ".corsa-media-testo{flex:1 1 320px}";
+  ".corsa-media-testo{flex:1 1 320px}" +
+  ".corsa-materiale{display:block}" +
+  ".corsa-materiale-desc{font-size:13px;color:var(--mist);line-height:1.5;margin:6px 4px 0}";
 
 // Pagina vetrina de La Corsa Invisibile. Modellata sui blocchi 1-6 di
 // paginaGioco (stesse classi CSS condivise, nessun CSS nuovo), ma con UN solo
@@ -1908,6 +1931,21 @@ export function paginaCorsaInvisibile() {
 
   var passiHtml = p.comeSiComincia
     .map(function (s) { return "<li>" + s + "</li>"; })
+    .join("");
+
+  // Card di download dei materiali: href diretto ai PDF sul worker della
+  // Corsa, target nuovo tab, nessun data-materiale-id (l'handler del
+  // codice-libro di paginaGioco aggancia solo le card con quell'attributo).
+  var materialiCorsaHtml = p.materialiCorsa
+    .map(function (m) {
+      return "<div class=\"corsa-materiale\">" +
+        "<a class=\"materiale-card\" href=\"" + m.link + "\" target=\"_blank\" rel=\"noopener\">" +
+          "<span class=\"materiale-titolo\">" + m.titolo + "</span>" +
+          "<span class=\"materiale-tag\">" + m.tag + "</span>" +
+        "</a>" +
+        "<p class=\"corsa-materiale-desc\">" + m.descrizione + "</p>" +
+      "</div>";
+    })
     .join("");
 
   return (
@@ -1936,7 +1974,11 @@ export function paginaCorsaInvisibile() {
       "<div class=\"corsa-media-fig\"><img class=\"corsa-img-lato\" src=\"" + p.imgCustode + "\" alt=\"Un bersagliere soccorre un ragazzo\"></div>" +
       "<p class=\"corsa-media-testo hook\">" + p.dovePortera + "</p>" +
     "</div></div></section>" +
-    "<section><h2 class=\"section-title\">Per giocare dal vivo, senza schermi</h2><div class=\"wrap\"><p class=\"hook\">" + p.dalVivo + "</p></div></section>" +
+    "<section><h2 class=\"section-title\">Per giocare dal vivo, senza schermi</h2><div class=\"wrap\">" +
+      "<p class=\"hook\">" + p.dalVivo + "</p>" +
+      "<div class=\"materiali-list\">" + materialiCorsaHtml + "</div>" +
+      "<p class=\"nota-piccola\">" + p.dalVivoChiusura + "</p>" +
+    "</div></section>" +
     "<section><h2 class=\"section-title\">La storia da cui nasce</h2><div class=\"wrap\"><p class=\"hook\">" + p.laStoria + "</p></div></section>" +
     "<section><div class=\"wrap\"><div style=\"max-width:360px;margin:0 auto;\">" +
       "<a class=\"btn\" href=\"" + p.ctaUrl + "\">" + p.ctaLabel + "</a>" +
