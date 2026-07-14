@@ -4,7 +4,7 @@
 // Fase 5bis: pagina /admin per generare codici a mano (via di riserva) con QR
 
 import { creaStatoIniziale, gameConfigs } from "./schema.js";
-import { paginaLobby, paginaAdmin, paginaHome, paginaGioco, paginaInArrivo } from "./pages.js";
+import { paginaLobby, paginaAdmin, paginaHome, paginaGioco, paginaInArrivo, paginaCorsaInvisibile } from "./pages.js";
 
 // Simboli di gioco selezionabili alla creazione del personaggio. Whitelist
 // server-side: qualunque valore non presente qui viene ignorato e sostituito
@@ -1242,6 +1242,14 @@ export default {
     }
     if (url.pathname === "/ledger-game" && !url.searchParams.get("room")) {
       return new Response(paginaInArrivo("The Ledger Game"), {
+        headers: { "content-type": "text/html; charset=UTF-8" },
+      });
+    }
+
+    // Pagina vetrina de La Corsa Invisibile: presentazione + CTA verso il suo
+    // worker indipendente. Additiva, nessun aggancio al motore/gameConfigs.
+    if (url.pathname === "/la-corsa-invisibile" && !url.searchParams.get("room")) {
+      return new Response(paginaCorsaInvisibile(), {
         headers: { "content-type": "text/html; charset=UTF-8" },
       });
     }

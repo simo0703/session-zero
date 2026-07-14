@@ -1774,11 +1774,17 @@ export function paginaHome() {
       statoLabel: "Presto disponibile"
     },
     {
-      href: "https://corsa.roomzero.online",
+      href: "/la-corsa-invisibile",
       nome: "La Corsa Invisibile",
       tagline: "Un'ambientazione storica, una squadra, un ritmo da tenere.",
       stato: "esterno",
-      statoLabel: "Progetto indipendente"
+      statoLabel: "Progetto indipendente",
+      libro: {
+        img: "https://la-corsa-invisibile.roomzero.workers.dev/img/copertina-gdr-card.jpg",
+        alt: "La Corsa Invisibile — il gioco di ruolo dei bersaglieri",
+        href: "/la-corsa-invisibile",
+        caption: "Dai romanzi di Simone Badii — <strong>Il ragazzo che correva nel tempo</strong> e <strong>I passi tornano</strong> — il gioco che fa correre la squadra attraverso 190 anni di storia."
+      }
     }
   ];
 
@@ -1793,9 +1799,14 @@ export function paginaHome() {
         var infoTag = g.href ? "a" : "div";
         var infoHrefAttr = g.href ? " href=\"" + g.href + "\"" : "";
         var infoClassi = "game-info" + (g.href ? "" : " disabled");
+        // target="_blank" solo per copertine con href ESTERNO (http...): un
+        // link interno (es. /la-corsa-invisibile) resta navigazione normale
+        // nella stessa scheda. La Soglia (href esterno) mantiene il _blank.
+        var coverEsterno = /^http/i.test(g.libro.href);
+        var coverTargetAttr = coverEsterno ? " target=\"_blank\" rel=\"noopener\"" : "";
         return (
           "<div class=\"game-card-with-cover\">" +
-            "<a class=\"cover-link\" href=\"" + g.libro.href + "\" target=\"_blank\" rel=\"noopener\">" +
+            "<a class=\"cover-link\" href=\"" + g.libro.href + "\"" + coverTargetAttr + ">" +
               "<img class=\"cover-img\" src=\"" + g.libro.img + "\" alt=\"Copertina di " + g.libro.alt + "\">" +
             "</a>" +
             "<div class=\"cover-caption\">" + g.libro.caption + "</div>" +
@@ -1843,6 +1854,93 @@ export function paginaInArrivo(nome) {
       "<h1>" + nome + "</h1>" +
       "<p class=\"tagline\">Questo gioco non è ancora disponibile. Torna presto.</p>" +
     "</div>" +
+    "</body></html>"
+  );
+}
+
+// Testo di presentazione de La Corsa Invisibile. FUORI da gameConfigs a
+// posta: la Corsa è un progetto/worker indipendente (gira su
+// la-corsa-invisibile.roomzero.workers.dev), NON un gioco di questo motore —
+// questa è solo la sua pagina vetrina su roomzero, con un CTA esterno. Tenerla
+// in gameConfigs la esporrebbe come gioco locale giocabile, cosa che non è.
+const presentazioneCorsa = {
+  nome: "La Corsa Invisibile",
+  tagline: "Il gioco di ruolo dei bersaglieri — dal 1836 a oggi.",
+  giocatori: "Da 2 a 8 giocatori",
+  durata: "Circa un'ora a episodio",
+  hook: "Un gioco da fare con gli amici, ognuno dal proprio telefono o computer, anche a distanza. Siete una squadra di bersaglieri dentro un episodio vero della loro storia: qualcuno racconta la situazione, voi decidete cosa fare, un dado dice se ci riuscite. Non si gioca uno contro l'altro: si vince e si sbaglia insieme. È gratuito, per tutti: niente da installare, niente da pagare, nessun codice richiesto. Serve solo il link.",
+  comeSiComincia: [
+    "Uno di voi preme il bottone qui sotto e crea una stanza: diventa il comandante della squadra.",
+    "Il comandante manda il link della stanza agli altri — su WhatsApp, come volete. Chi lo apre è dentro.",
+    "Ognuno sceglie il suo ruolo, e la corsa comincia."
+  ],
+  dovePortera: "Cinque episodi, cinque momenti veri: Torino 1836, dove tutto comincia. Milano 1848, le Cinque Giornate. Il Carso e il Piave, 1915-1918, la Grande Guerra. Un'emergenza civile, quando i bersaglieri corrono per aiutare. Una missione moderna, la corsa di oggi. Potete giocarne uno o attraversarli tutti.",
+  dalVivo: "Il gioco funziona anche attorno a un tavolo vero, con carta, matita e un dado. Le schede dei ruoli, la guida rapida (una pagina, si impara in dieci minuti) e il regolamento completo saranno presto qui da scaricare e stampare.",
+  laStoria: "Il gioco è figlio dei romanzi di Simone Badii — Il ragazzo che correva nel tempo e I passi tornano — che raccontano 190 anni di storia dei bersaglieri. Non serve averli letti per giocare. Ma se dopo aver giocato vi viene voglia di sapere come continua, sapete dove cercare.",
+  imgSquadra: "https://la-corsa-invisibile.roomzero.workers.dev/img/squadra-corsa.webp",
+  imgCustode: "https://la-corsa-invisibile.roomzero.workers.dev/img/custode-ragazzo.webp",
+  ctaUrl: "https://la-corsa-invisibile.roomzero.workers.dev",
+  ctaLabel: "Gioca ora — crea una stanza"
+};
+
+// CSS locale della pagina Corsa: SOLO classi con prefisso corsa-, nessun
+// contatto con le classi condivise (stilePiattaforma resta intoccato).
+// Iniettato nell'<head> di questa sola pagina. Le immagini sono WebP con
+// trasparenza: nessuno sfondo/bordo/box, si appoggiano sul fondo scuro.
+// Layout a due colonne che si impila (flex-wrap) su schermo stretto.
+const stileCorsa =
+  ".corsa-hero{max-width:1000px;margin:0 auto;padding:28px 20px 8px;display:flex;gap:30px;align-items:center;flex-wrap:wrap;justify-content:center}" +
+  ".corsa-hero-media{flex:1 1 300px;text-align:center}" +
+  ".corsa-hero-testo{flex:1 1 360px}" +
+  ".corsa-img-hero{display:block;width:100%;max-width:430px;height:auto;margin:0 auto}" +
+  ".corsa-media-riga{display:flex;gap:28px;align-items:center;flex-wrap:wrap;justify-content:center;margin-top:6px}" +
+  ".corsa-media-fig{flex:0 1 210px;text-align:center}" +
+  ".corsa-img-lato{display:block;width:100%;max-width:210px;height:auto;margin:0 auto}" +
+  ".corsa-media-testo{flex:1 1 320px}";
+
+// Pagina vetrina de La Corsa Invisibile. Modellata sui blocchi 1-6 di
+// paginaGioco (stesse classi CSS condivise, nessun CSS nuovo), ma con UN solo
+// CTA esterno al posto degli entra-box: il gioco vive su un altro worker,
+// gratuito e senza codici, quindi niente materiali/codice-libro/ingresso
+// locale. Puramente additiva: non tocca il motore né gli altri giochi.
+export function paginaCorsaInvisibile() {
+  var p = presentazioneCorsa;
+
+  var passiHtml = p.comeSiComincia
+    .map(function (s) { return "<li>" + s + "</li>"; })
+    .join("");
+
+  return (
+    "<!DOCTYPE html><html lang=\"it\"><head>" +
+    headPiattaforma(p.nome + " — roomzero") +
+    "<style>" + stileCorsa + "</style>" +
+    "</head><body>" +
+    "<a class=\"back-link\" href=\"/\">&larr; roomzero</a>" +
+    "<div class=\"corsa-hero\">" +
+      "<div class=\"corsa-hero-media\"><img class=\"corsa-img-hero\" src=\"" + p.imgSquadra + "\" alt=\"La squadra di bersaglieri in corsa\"></div>" +
+      "<div class=\"corsa-hero-testo\">" +
+        "<div class=\"game-hero\">" +
+          "<span class=\"kicker\">Gioco di ruolo da tavolo</span>" +
+          "<h1>" + p.nome + "</h1>" +
+          "<p class=\"tagline\">" + p.tagline + "</p>" +
+          "<div class=\"meta-row\">" +
+            "<div class=\"meta-item\"><span class=\"k\">Chi serve</span><span class=\"v\">" + p.giocatori + "</span></div>" +
+            "<div class=\"meta-item\"><span class=\"k\">Quanto dura</span><span class=\"v\">" + p.durata + "</span></div>" +
+          "</div>" +
+        "</div>" +
+        "<p class=\"hook\">" + p.hook + "</p>" +
+      "</div>" +
+    "</div>" +
+    "<section><h2 class=\"section-title\">Come si comincia</h2><div class=\"wrap\"><ol class=\"steps-list\">" + passiHtml + "</ol></div></section>" +
+    "<section><h2 class=\"section-title\">Dove vi porterà</h2><div class=\"wrap\"><div class=\"corsa-media-riga\">" +
+      "<div class=\"corsa-media-fig\"><img class=\"corsa-img-lato\" src=\"" + p.imgCustode + "\" alt=\"Un bersagliere soccorre un ragazzo\"></div>" +
+      "<p class=\"corsa-media-testo hook\">" + p.dovePortera + "</p>" +
+    "</div></div></section>" +
+    "<section><h2 class=\"section-title\">Per giocare dal vivo, senza schermi</h2><div class=\"wrap\"><p class=\"hook\">" + p.dalVivo + "</p></div></section>" +
+    "<section><h2 class=\"section-title\">La storia da cui nasce</h2><div class=\"wrap\"><p class=\"hook\">" + p.laStoria + "</p></div></section>" +
+    "<section><div class=\"wrap\"><div style=\"max-width:360px;margin:0 auto;\">" +
+      "<a class=\"btn\" href=\"" + p.ctaUrl + "\">" + p.ctaLabel + "</a>" +
+    "</div></div></section>" +
     "</body></html>"
   );
 }
