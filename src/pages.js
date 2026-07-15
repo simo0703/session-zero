@@ -1780,7 +1780,7 @@ export function paginaHome() {
       stato: "esterno",
       statoLabel: "Progetto indipendente",
       libro: {
-        img: "https://la-corsa-invisibile.roomzero.workers.dev/img/copertina-gdr-card.jpg",
+        img: "https://corsa.roomzero.online/img/copertina-gdr-card.jpg",
         alt: "La Corsa Invisibile — il gioco di ruolo dei bersaglieri",
         href: "/la-corsa-invisibile",
         caption: "Dai romanzi di Simone Badii — <strong>Il ragazzo che correva nel tempo</strong> e <strong>I passi tornano</strong> — il gioco che fa correre la squadra attraverso 190 anni di storia."
@@ -1860,7 +1860,7 @@ export function paginaInArrivo(nome) {
 
 // Testo di presentazione de La Corsa Invisibile. FUORI da gameConfigs a
 // posta: la Corsa è un progetto/worker indipendente (gira su
-// la-corsa-invisibile.roomzero.workers.dev), NON un gioco di questo motore —
+// corsa.roomzero.online), NON un gioco di questo motore —
 // questa è solo la sua pagina vetrina su roomzero, con un CTA esterno. Tenerla
 // in gameConfigs la esporrebbe come gioco locale giocabile, cosa che non è.
 const presentazioneCorsa = {
@@ -1875,32 +1875,38 @@ const presentazioneCorsa = {
     "Ognuno sceglie il suo ruolo, e la corsa comincia."
   ],
   dovePortera: "Cinque episodi, cinque momenti veri: Torino 1836, dove tutto comincia. Milano 1848, le Cinque Giornate. Il Carso e il Piave, 1915-1918, la Grande Guerra. Un'emergenza civile, quando i bersaglieri corrono per aiutare. Una missione moderna, la corsa di oggi. Potete giocarne uno o attraversarli tutti.",
-  dalVivo: "Per giocare al tavolo, senza computer, bastano tre fogli. Scaricali, stampali, e sei pronto.",
+  dalVivo: "Per giocare al tavolo, senza computer, tutto quello che serve è qui sotto: il regolamento si legge online, la guida e le carte si stampano.",
   dalVivoChiusura: "Serve anche solo un dado a sei facce.",
   materialiCorsa: [
     {
       titolo: "Regolamento completo",
-      tag: "PDF · 10 pagine",
-      descrizione: "Tutte le regole del gioco, spiegate una per una. Lo legge chi organizza la partita, prima di giocare.",
-      link: "https://la-corsa-invisibile.roomzero.workers.dev/materiali/regolamento-la-corsa-invisibile.pdf"
+      tag: "Pagina web",
+      descrizione: "Tutte le regole del gioco, spiegate una per una. Si legge nel browser, senza scaricare niente: lo guarda chi organizza la partita, prima di giocare.",
+      link: "https://corsa.roomzero.online/materiali/regolamento"
     },
     {
       titolo: "Guida rapida",
-      tag: "PDF · 1 pagina",
-      descrizione: "Il foglio da tenere in mezzo al tavolo durante la partita. C'è scritto come si tira il dado e cosa succede. Basta questo per giocare.",
-      link: "https://la-corsa-invisibile.roomzero.workers.dev/materiali/guida-rapida-la-corsa-invisibile.pdf"
+      tag: "PDF · 2 pagine",
+      descrizione: "Da stampare e tenere in mezzo al tavolo durante la partita. C'è scritto come si tira il dado e cosa succede. Basta questa per giocare.",
+      link: "https://corsa.roomzero.online/materiali/guida.pdf"
     },
     {
-      titolo: "Schede dei ruoli",
-      tag: "PDF · 2 pagine",
-      descrizione: "Il foglio da tavolo e le quattro schede: Esploratore, Incursore, Fanfara, Custode. Una scheda a testa.",
-      link: "https://la-corsa-invisibile.roomzero.workers.dev/materiali/schede-la-corsa-invisibile.pdf"
+      titolo: "Carte dei ruoli da stampare",
+      tag: "PDF · 1 pagina",
+      descrizione: "Le quattro carte — Esploratore, Fanfara, Custode, Incursore — su un foglio solo. Stampalo e ritaglia: una carta a testa.",
+      link: "https://corsa.roomzero.online/materiali/carte.pdf"
+    },
+    {
+      titolo: "Carte dei ruoli",
+      tag: "Pagina web",
+      descrizione: "Le stesse quattro carte, da leggere al volo sul telefono se non avete una stampante sottomano.",
+      link: "https://corsa.roomzero.online/materiali/carte"
     }
   ],
   laStoria: "Il gioco è figlio dei romanzi di Simone Badii — Il ragazzo che correva nel tempo e I passi tornano — che raccontano 190 anni di storia dei bersaglieri. Non serve averli letti per giocare. Ma se dopo aver giocato vi viene voglia di sapere come continua, sapete dove cercare.",
-  imgSquadra: "https://la-corsa-invisibile.roomzero.workers.dev/img/squadra-corsa.webp",
-  imgCustode: "https://la-corsa-invisibile.roomzero.workers.dev/img/custode-ragazzo.webp",
-  ctaUrl: "https://la-corsa-invisibile.roomzero.workers.dev",
+  imgSquadra: "https://corsa.roomzero.online/img/squadra-corsa.webp",
+  imgCustode: "https://corsa.roomzero.online/img/custode-ragazzo.webp",
+  ctaUrl: "https://corsa.roomzero.online",
   ctaLabel: "Gioca ora — crea una stanza"
 };
 
